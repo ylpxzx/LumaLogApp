@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -38,6 +39,9 @@ fun ContributionHeatmap(
     colorTheme: String,
     strings: LumaStrings,
     showDayDetails: Boolean = false,
+    clickableDates: Set<String> = emptySet(),
+    selectedDates: Set<String> = emptySet(),
+    onDayClick: ((HeatmapDay) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     var selectedDay by remember(days) { mutableStateOf<HeatmapDay?>(null) }
@@ -87,7 +91,8 @@ fun ContributionHeatmap(
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                     week.forEach { day ->
                         val shape = RoundedCornerShape(3.dp)
-                        val isSelected = showDayDetails && day != null && selectedDay?.date == day.date
+                        val canClick = day != null && onDayClick != null && clickableDates.contains(day.date)
+                        val isSelected = day != null && (selectedDates.contains(day.date) || (showDayDetails && selectedDay?.date == day.date))
                         var cellModifier = Modifier
                             .fillMaxWidth()
                             .aspectRatio(1f)
@@ -95,11 +100,15 @@ fun ContributionHeatmap(
                             .background(
                                 if (day == null) Color.Transparent else heatmapColor(colorTheme, day.level, emptySquareColor),
                             )
+                            .alpha(if (onDayClick != null && day != null && !canClick) 0.36f else 1f)
                         if (isSelected) {
                             cellModifier = cellModifier.border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.78f), shape)
                         }
-                        if (showDayDetails && day != null) {
-                            cellModifier = cellModifier.combinedClickable(onClick = { selectedDay = day })
+                        if (day != null) {
+                            when {
+                                canClick -> cellModifier = cellModifier.combinedClickable(onClick = { onDayClick?.invoke(day) })
+                                showDayDetails && onDayClick == null -> cellModifier = cellModifier.combinedClickable(onClick = { selectedDay = day })
+                            }
                         }
 
                         Box(

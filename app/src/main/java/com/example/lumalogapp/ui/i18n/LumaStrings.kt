@@ -23,7 +23,7 @@ class LumaStrings(private val language: LanguagePreference) {
             val label = englishMonths.getOrElse(month - 1) { month.toString() }
             return if (month == 1) "$label '$year" else label
         }
-        return if (month == 1) "${year}\u5e74${month}\u6708" else "$month\u6708"
+        return if (month == 1) "${year}年${month}月" else "${month}月"
     }
 
     fun heatmapDayLabel(day: HeatmapDay): String {
@@ -33,21 +33,11 @@ class LumaStrings(private val language: LanguagePreference) {
         } else if (language == LanguagePreference.En) {
             "${englishMonths.getOrElse(date.monthValue - 1) { date.monthValue.toString() }} ${date.dayOfMonth}, ${date.year}"
         } else {
-            "${date.year}\u5e74${date.monthValue}\u6708${date.dayOfMonth}\u65e5"
+            "${date.year}年${date.monthValue}月${date.dayOfMonth}日"
         }
-        val countText = if (language == LanguagePreference.En) {
-            "${day.count} time(s)"
-        } else {
-            "${day.count} \u6b21"
-        }
-        val completedText = if (!day.completed) {
-            ""
-        } else if (language == LanguagePreference.En) {
-            " \u00b7 completed"
-        } else {
-            " \u00b7 \u5df2\u5b8c\u6210"
-        }
-        return "$dateText \u00b7 $countText$completedText"
+        val countText = if (language == LanguagePreference.En) "${day.count} time(s)" else "${day.count} 次"
+        val completedText = if (!day.completed) "" else if (language == LanguagePreference.En) " / completed" else " / 已完成"
+        return "$dateText / $countText$completedText"
     }
 
     fun colorName(theme: String): String = t("color_$theme")
@@ -103,6 +93,7 @@ private val zh = mapOf(
     "settings" to "设置",
     "settingsSub" to "配置主题、语言、首页显示和数据迁移。",
     "backHome" to "返回首页",
+    "backCheckin" to "返回签到",
     "empty" to "还没有 habit。",
     "createFirst" to "创建第一个",
     "itemCount" to "{count} 个 habit",
@@ -129,10 +120,13 @@ private val zh = mapOf(
     "startTime" to "开始时间",
     "endTime" to "结束时间",
     "allowExtra" to "达标后允许继续签到",
+    "allowMakeup" to "允许补签",
+    "makeupMonthlyLimit" to "每月最多补签次数",
     "showOnDashboard" to "显示在首页",
     "createItem" to "创建 habit",
     "save" to "保存修改",
     "deleteItem" to "删除 habit",
+    "archive" to "归档",
     "deleteTitle" to "删除这个 habit？",
     "deleteMessage" to "删除后，该 habit 的所有签到记录也会被删除，无法恢复。",
     "delete" to "删除",
@@ -157,7 +151,25 @@ private val zh = mapOf(
     "import" to "导入",
     "exported" to "已导出",
     "imported" to "已导入",
+    "earnedBadges" to "已获得徽章",
+    "noEarnedBadges" to "还没有获得徽章",
+    "archivedItems" to "归档 habit",
+    "archivedEmpty" to "还没有归档的 habit。",
+    "unarchive" to "恢复",
     "checked" to "已点亮",
+    "makeupEntry" to "补签",
+    "shareImage" to "生成分享图",
+    "shareImageSaved" to "图片已保存到相册",
+    "shareImageSaveFailed" to "图片保存失败",
+    "confirmMakeup" to "确认补签",
+    "makeupConfirmed" to "已确认补签 {count} 天",
+    "makeupUnlimited" to "补签不限次数",
+    "makeupRemaining" to "本月剩余补签 {count} 次",
+    "makeupSelected" to "已选择 {count} 天",
+    "checkinRecords" to "签到记录",
+    "noCheckinRecords" to "暂无签到记录",
+    "makeupCheckin" to "补签",
+    "normalCheckin" to "正常签到",
     "itemMissing" to "habit 不存在",
     "allDayCheckin" to "全天可签到",
     "streakDays" to "连续 {count} 天",
@@ -189,6 +201,7 @@ private val en = mapOf(
     "settings" to "Settings",
     "settingsSub" to "Theme, language, dashboard, and data migration.",
     "backHome" to "Home",
+    "backCheckin" to "Back to check-in",
     "empty" to "No habits yet.",
     "createFirst" to "Create first",
     "itemCount" to "{count} habits",
@@ -215,10 +228,13 @@ private val en = mapOf(
     "startTime" to "Start time",
     "endTime" to "End time",
     "allowExtra" to "Allow extra check-ins after target",
+    "allowMakeup" to "Allow makeup check-ins",
+    "makeupMonthlyLimit" to "Monthly makeup limit",
     "showOnDashboard" to "Show on dashboard",
     "createItem" to "Create habit",
     "save" to "Save changes",
     "deleteItem" to "Delete habit",
+    "archive" to "Archive",
     "deleteTitle" to "Delete this habit?",
     "deleteMessage" to "All check-in records for this habit will be deleted.",
     "delete" to "Delete",
@@ -244,24 +260,42 @@ private val en = mapOf(
     "import" to "Import",
     "exported" to "Exported",
     "imported" to "Imported",
+    "earnedBadges" to "Earned badges",
+    "noEarnedBadges" to "No badges earned yet",
+    "archivedItems" to "Archived habits",
+    "archivedEmpty" to "No archived habits.",
+    "unarchive" to "Restore",
     "checked" to "Lit up",
+    "makeupEntry" to "Makeup",
+    "shareImage" to "Save image",
+    "shareImageSaved" to "Image saved to gallery",
+    "shareImageSaveFailed" to "Failed to save image",
+    "confirmMakeup" to "Confirm makeup",
+    "makeupConfirmed" to "Confirmed {count} makeup day(s)",
+    "makeupUnlimited" to "Unlimited makeup check-ins",
+    "makeupRemaining" to "{count} makeup check-in(s) left this month",
+    "makeupSelected" to "{count} day(s) selected",
+    "checkinRecords" to "Check-in records",
+    "noCheckinRecords" to "No check-in records yet",
+    "makeupCheckin" to "Makeup",
+    "normalCheckin" to "Normal",
     "itemMissing" to "Habit not found",
     "allDayCheckin" to "Available all day",
     "streakDays" to "{count}-day streak",
     "statusAvailable" to "Available today",
     "statusNotStarted" to "Not started",
-    "statusEnded" to "Goal ended",
+    "statusEnded" to "Ended",
     "statusBefore" to "Not time yet",
-    "statusAfter" to "Closed today",
-    "statusCompleted" to "Completed today",
+    "statusAfter" to "Window closed",
+    "statusCompleted" to "Lit today",
     "statusContinue" to "Done, can continue",
-    "hintAvailable" to "Click to light up today",
+    "hintAvailable" to "Tap to light up today",
     "hintNotStarted" to "Start date has not arrived",
-    "hintEnded" to "This goal has ended",
+    "hintEnded" to "This habit has ended",
     "hintBefore" to "Come back later",
     "hintAfter" to "Continue tomorrow",
-    "hintCompleted" to "Today is complete",
-    "hintContinue" to "Target met, keep recording",
+    "hintCompleted" to "Completed today",
+    "hintContinue" to "Target reached, still recordable",
     "color_green" to "Green",
     "color_blue" to "Blue",
     "color_purple" to "Purple",

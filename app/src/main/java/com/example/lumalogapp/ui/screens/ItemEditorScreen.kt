@@ -47,6 +47,7 @@ fun ItemEditorScreen(
     onBack: () -> Unit,
     onSave: (Item) -> Unit,
     onDelete: () -> Unit,
+    onArchive: () -> Unit,
 ) {
     val existing = data.items.firstOrNull { it.id == itemId }
     val visibleCategories = data.categories.filterNot { it.isHidden }.sortedBy { it.sortOrder }
@@ -63,6 +64,8 @@ fun ItemEditorScreen(
     var timeMode by remember(itemId) { mutableStateOf(existing?.timeMode ?: TimeMode.AllDay) }
     var validStartTime by remember(itemId) { mutableStateOf(existing?.validStartTime ?: "09:00") }
     var validEndTime by remember(itemId) { mutableStateOf(existing?.validEndTime ?: "23:59") }
+    var allowMakeup by remember(itemId) { mutableStateOf(existing?.allowMakeup ?: false) }
+    var makeupMonthlyLimit by remember(itemId) { mutableStateOf((existing?.makeupMonthlyLimit ?: 3).toString()) }
     var allowExtra by remember(itemId) { mutableStateOf(existing?.allowExtraCheckins ?: false) }
     var showOnDashboard by remember(itemId) { mutableStateOf(existing?.showOnDashboard ?: true) }
     var confirmDelete by remember { mutableStateOf(false) }
@@ -172,6 +175,16 @@ fun ItemEditorScreen(
                             )
                         }
                     }
+                    SwitchRow(strings.t("allowMakeup"), allowMakeup) { allowMakeup = it }
+                    if (allowMakeup) {
+                        OutlinedTextField(
+                            value = makeupMonthlyLimit,
+                            onValueChange = { makeupMonthlyLimit = it.filter(Char::isDigit).ifBlank { "0" } },
+                            label = { Text(strings.t("makeupMonthlyLimit")) },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                        )
+                    }
                     SwitchRow(strings.t("allowExtra"), allowExtra) { allowExtra = it }
                     SwitchRow(strings.t("showOnDashboard"), showOnDashboard) { showOnDashboard = it }
                     Button(
@@ -190,9 +203,13 @@ fun ItemEditorScreen(
                                     timeMode = timeMode,
                                     validStartTime = validStartTime,
                                     validEndTime = validEndTime,
+                                    allowMakeup = allowMakeup,
+                                    makeupMonthlyLimit = if (allowMakeup) makeupMonthlyLimit.toIntOrNull()?.coerceAtLeast(0) ?: 0 else 0,
                                     allowExtraCheckins = allowExtra,
                                     showOnDashboard = showOnDashboard,
                                     sortOrder = existing?.sortOrder ?: 0,
+                                    archivedAt = existing?.archivedAt ?: "",
+                                    deletedAt = existing?.deletedAt ?: "",
                                 )
                             )
                         },
@@ -202,6 +219,12 @@ fun ItemEditorScreen(
                         Text(if (existing == null) strings.t("createItem") else strings.t("save"))
                     }
                     if (existing != null) {
+                        OutlinedButton(
+                            onClick = onArchive,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(strings.t("archive"))
+                        }
                         OutlinedButton(
                             onClick = { confirmDelete = true },
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),

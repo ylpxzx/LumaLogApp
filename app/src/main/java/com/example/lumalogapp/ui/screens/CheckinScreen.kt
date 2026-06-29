@@ -3,8 +3,12 @@ package com.example.lumalogapp.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,8 +27,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,30 +44,50 @@ import com.example.lumalogapp.data.DashboardItem
 import com.example.lumalogapp.data.LumaData
 import com.example.lumalogapp.data.buildDashboardItems
 import com.example.lumalogapp.data.canCheckIn
+import com.example.lumalogapp.data.itemBadges
+import com.example.lumalogapp.ui.components.AchievementBadge
 import com.example.lumalogapp.ui.components.ContributionHeatmap
 import com.example.lumalogapp.ui.i18n.LumaStrings
 import com.example.lumalogapp.ui.utils.timeHint
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CheckinScreen(
     data: LumaData,
     itemId: Long,
     strings: LumaStrings,
     onBack: () -> Unit,
+    onOpenMakeup: () -> Unit,
+    onSaveShareImage: (DashboardItem) -> Unit,
     onCheckin: () -> Unit,
 ) {
     val entry = remember(data, itemId) { buildDashboardItems(data).firstOrNull { it.item.id == itemId } }
+    val itemCheckins = remember(data, itemId) {
+        data.checkins.filter { it.itemId == itemId }.sortedByDescending { it.checkinDate }
+    }
+    var recordsExpanded by remember(itemId) { mutableStateOf(false) }
 
     Scaffold(containerColor = MaterialTheme.colorScheme.background) { padding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(18.dp),
+                .padding(18.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 OutlinedButton(onClick = onBack) { Text(strings.t("backHome")) }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    entry?.let { currentEntry ->
+                        TextButton(onClick = { onSaveShareImage(currentEntry) }) {
+                            Text(strings.t("shareImage"))
+                        }
+                    }
+                    if (entry?.item?.allowMakeup == true) {
+                        OutlinedButton(onClick = onOpenMakeup) { Text(strings.t("makeupEntry")) }
+                    }
+                }
             }
 
             if (entry == null) {
@@ -93,6 +121,23 @@ fun CheckinScreen(
                 MetaChip(strings.t("streakDays", "count" to entry.stats.currentStreak.toString()))
             }
             Spacer(Modifier.height(28.dp))
+            val earnedBadges = itemBadges(entry.stats).filter { it.earned }
+            if (earnedBadges.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(strings.t("earnedBadges"), color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            earnedBadges.forEach { badge -> AchievementBadge(badge = badge) }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(14.dp))
+            }
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(8.dp),
@@ -106,6 +151,41 @@ fun CheckinScreen(
                     showDayDetails = true,
                     modifier = Modifier.padding(14.dp),
                 )
+            }
+            Spacer(Modifier.height(14.dp))
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { recordsExpanded = !recordsExpanded },
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(strings.t("checkinRecords"), color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
+                        Text("${itemCheckins.size} ${if (recordsExpanded) "-" else "+"}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    if (recordsExpanded) {
+                        if (itemCheckins.isEmpty()) {
+                            Text(strings.t("noCheckinRecords"), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        } else {
+                            itemCheckins.take(8).forEach { record ->
+                                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text(record.checkinDate, fontWeight = FontWeight.Bold)
+                                    Text(
+                                        if (record.source == "makeup") strings.t("makeupCheckin") else strings.t("normalCheckin"),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

@@ -20,7 +20,9 @@ import com.example.lumalogapp.ui.i18n.LumaStrings
 import com.example.lumalogapp.ui.screens.CheckinScreen
 import com.example.lumalogapp.ui.screens.DashboardScreen
 import com.example.lumalogapp.ui.screens.ItemEditorScreen
+import com.example.lumalogapp.ui.screens.MakeupScreen
 import com.example.lumalogapp.ui.screens.SettingsScreen
+import com.example.lumalogapp.ui.share.saveHabitImage
 import com.example.lumalogapp.ui.theme.LumaLogAppTheme
 import java.time.LocalDate
 
@@ -28,6 +30,7 @@ private sealed interface Screen {
     data object Dashboard : Screen
     data object Settings : Screen
     data class Checkin(val itemId: Long) : Screen
+    data class Makeup(val itemId: Long) : Screen
     data class Editor(val itemId: Long?) : Screen
 }
 
@@ -93,6 +96,7 @@ fun LumaLogRoot() {
                     },
                     onToggleCategory = { updateData(store.toggleCategoryHidden(data, it)) },
                     onDeleteCategory = { updateData(store.deleteCategory(data, it)) },
+                    onRestoreItem = { updateData(store.restoreItem(data, it)) },
                     onExport = { exportLauncher.launch("lumalog-backup-${LocalDate.now()}.json") },
                     onImport = { importLauncher.launch(arrayOf("application/json", "text/*", "*/*")) },
                 )
@@ -102,9 +106,23 @@ fun LumaLogRoot() {
                     itemId = current.itemId,
                     strings = strings,
                     onBack = { screen = Screen.Dashboard },
+                    onOpenMakeup = { screen = Screen.Makeup(current.itemId) },
+                    onSaveShareImage = { entry -> saveHabitImage(context, entry, strings, darkTheme) },
                     onCheckin = {
                         updateData(store.checkIn(data, current.itemId))
                         message = strings.t("checked")
+                    },
+                )
+
+                is Screen.Makeup -> MakeupScreen(
+                    data = data,
+                    itemId = current.itemId,
+                    strings = strings,
+                    onBack = { screen = Screen.Checkin(current.itemId) },
+                    onConfirm = { dates ->
+                        updateData(store.makeupCheckins(data, current.itemId, dates))
+                        message = strings.t("makeupConfirmed", "count" to dates.size.toString())
+                        screen = Screen.Checkin(current.itemId)
                     },
                 )
 
@@ -123,6 +141,12 @@ fun LumaLogRoot() {
                     onDelete = {
                         if (current.itemId != null) {
                             updateData(store.deleteItem(data, current.itemId))
+                        }
+                        screen = Screen.Dashboard
+                    },
+                    onArchive = {
+                        if (current.itemId != null) {
+                            updateData(store.archiveItem(data, current.itemId))
                         }
                         screen = Screen.Dashboard
                     },
