@@ -1,0 +1,48 @@
+
+D:\code\project\LumaLog\LumaLogApp>if "Windows_NT" == "Windows_NT" setlocal
+
+D:\code\project\LumaLog\LumaLogApp>set DIRNAME=D:\code\project\LumaLog\LumaLogApp\ 
+
+D:\code\project\LumaLog\LumaLogApp>if "D:\code\project\LumaLog\LumaLogApp\" == "" set DIRNAME=. 
+
+D:\code\project\LumaLog\LumaLogApp>set APP_BASE_NAME=gradlew 
+
+D:\code\project\LumaLog\LumaLogApp>set APP_HOME=D:\code\project\LumaLog\LumaLogApp\ 
+
+D:\code\project\LumaLog\LumaLogApp>for %i in ("D:\code\project\LumaLog\LumaLogApp\") do set APP_HOME=%~fi 
+
+D:\code\project\LumaLog\LumaLogApp>set APP_HOME=D:\code\project\LumaLog\LumaLogApp\ 
+
+D:\code\project\LumaLog\LumaLogApp>set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m" 
+
+D:\code\project\LumaLog\LumaLogApp>if defined JAVA_HOME goto findJavaFromJavaHome 
+
+D:\code\project\LumaLog\LumaLogApp>set JAVA_HOME=D:\app\AndroidStudio\jbr 
+
+D:\code\project\LumaLog\LumaLogApp>set JAVA_EXE=D:\app\AndroidStudio\jbr/bin/java.exe 
+
+D:\code\project\LumaLog\LumaLogApp>if exist "D:\app\AndroidStudio\jbr/bin/java.exe" goto execute 
+
+D:\code\project\LumaLog\LumaLogApp>set CLASSPATH= 
+
+D:\code\project\LumaLog\LumaLogApp>"D:\app\AndroidStudio\jbr/bin/java.exe" "-Xmx64m" "-Xms64m"   "-Dorg.gradle.appname=gradlew" -classpath "" -jar "D:\code\project\LumaLog\LumaLogApp\\gradle\wrapper\gradle-wrapper.jar" assembleDebug --no-daemon --console=plain --stacktrace 
+To honour the JVM settings for this build a single-use Daemon process will be forked. For more on this, please refer to https://docs.gradle.org/9.4.1/userguide/gradle_daemon.html#sec:disabling_the_daemon in the Gradle documentation.
+Daemon will be stopped at the end of the build 
+Calculating task graph as no cached configuration is available for tasks: assembleDebug
+Checking the license for package Android SDK Build-Tools 36 in D:\app\AndroidSDK\licenses
+License for package Android SDK Build-Tools 36 accepted.
+Preparing "Install Android SDK Build-Tools 36 v.36.0.0".
+
+D:\code\project\LumaLog\LumaLogApp>if 1 EQU 0 goto mainEnd 
+
+D:\code\project\LumaLog\LumaLogApp>rem Set variable GRADLE_EXIT_CONSOLE if you need the _script_ return code instead of 
+
+D:\code\project\LumaLog\LumaLogApp>rem the _cmd.exe /c_ return code! 
+
+D:\code\project\LumaLog\LumaLogApp>set EXIT_CODE=1 
+
+D:\code\project\LumaLog\LumaLogApp>if 1 EQU 0 set EXIT_CODE=1 
+
+D:\code\project\LumaLog\LumaLogApp>if not "" == "" exit 1 
+
+D:\code\project\LumaLog\LumaLogApp>exit /b 1 
