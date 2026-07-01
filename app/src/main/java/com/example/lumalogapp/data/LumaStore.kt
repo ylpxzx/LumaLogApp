@@ -244,8 +244,8 @@ fun itemStats(item: Item, checkins: List<Checkin>): ItemStats {
     val completedDays = byDate.count { (_, count) -> count >= item.dailyTargetCount }
     val completionRate = if (expectedDays == 0) 0.0 else completedDays.toDouble() / expectedDays.toDouble()
     return ItemStats(
-        currentStreak = streakEndingToday(item, byDate),
-        longestStreak = longestStreak(item, byDate),
+        currentStreak = streakEndingOn(last, byDate),
+        longestStreak = longestStreak(byDate),
         totalCheckins = checkins.sumOf { it.count },
         completedDays = completedDays,
         expectedDays = expectedDays,
@@ -276,19 +276,19 @@ private fun heatmapLevel(count: Int, target: Int): Int {
     return ceil((count.toDouble() / target.coerceAtLeast(1).toDouble()) * 4.0).toInt().coerceIn(1, 4)
 }
 
-private fun streakEndingToday(item: Item, byDate: Map<String, Int>): Int {
-    var cursor = LocalDate.now()
+private fun streakEndingOn(anchorDate: LocalDate, byDate: Map<String, Int>): Int {
+    var cursor = anchorDate
     var streak = 0
-    while ((byDate[cursor.toString()] ?: 0) >= item.dailyTargetCount) {
+    while ((byDate[cursor.toString()] ?: 0) > 0) {
         streak += 1
         cursor = cursor.minusDays(1)
     }
     return streak
 }
 
-private fun longestStreak(item: Item, byDate: Map<String, Int>): Int {
+private fun longestStreak(byDate: Map<String, Int>): Int {
     val dates = byDate
-        .filterValues { it >= item.dailyTargetCount }
+        .filterValues { it > 0 }
         .keys
         .mapNotNull { parseDate(it) }
         .sorted()
