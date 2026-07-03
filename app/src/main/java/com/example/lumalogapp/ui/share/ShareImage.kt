@@ -21,8 +21,12 @@ import com.example.lumalogapp.ui.i18n.LumaStrings
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.math.ceil
 import kotlin.math.min
+
+private data class HeatmapCell(
+    val day: HeatmapDay?,
+    val visible: Boolean,
+)
 
 fun saveHabitImage(
     context: Context,
@@ -81,16 +85,15 @@ private fun renderHabitShareBitmap(
     darkTheme: Boolean,
 ): Bitmap {
     val width = 1200
-    val badgeRows = ceil(badges.take(8).size / 4.0).toInt().coerceAtLeast(0)
-    val height = if (badgeRows == 0) 780 else 860 + badgeRows * 130
+    val height = 960
     val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
 
-    val bg = if (darkTheme) Color.rgb(12, 17, 24) else Color.rgb(247, 250, 252)
-    val surface = if (darkTheme) Color.rgb(17, 24, 34) else Color.WHITE
-    val text = if (darkTheme) Color.rgb(236, 241, 247) else Color.rgb(20, 29, 39)
-    val muted = if (darkTheme) Color.rgb(148, 163, 184) else Color.rgb(100, 116, 139)
-    val outline = if (darkTheme) Color.rgb(45, 57, 75) else Color.rgb(222, 228, 236)
+    val bg = if (darkTheme) Color.rgb(12, 17, 24) else Color.rgb(246, 248, 250)
+    val surface = if (darkTheme) Color.rgb(17, 24, 34) else Color.rgb(255, 255, 255)
+    val text = if (darkTheme) Color.rgb(235, 241, 248) else Color.rgb(16, 25, 36)
+    val muted = if (darkTheme) Color.rgb(151, 164, 183) else Color.rgb(98, 113, 132)
+    val outline = if (darkTheme) Color.rgb(45, 57, 75) else Color.rgb(219, 225, 232)
     val primary = themeColor(entry.item.colorTheme)
 
     canvas.drawColor(bg)
@@ -104,27 +107,45 @@ private fun renderHabitShareBitmap(
     canvas.drawRoundRect(card, 28f, 28f, paint)
     paint.style = Paint.Style.FILL
 
-    val titlePaint = textPaint(54f, text, Typeface.BOLD)
-    canvas.drawText(entry.item.name, 92f, 132f, titlePaint)
-    val metaPaint = textPaint(26f, muted, Typeface.BOLD)
-    canvas.drawText(
-        "${strings.categoryName(entry.category?.name ?: strings.t("uncategorized"))} / ${strings.t("streakDays", "count" to entry.stats.currentStreak.toString())}",
-        94f,
-        178f,
-        metaPaint,
+    drawFittedText(
+        canvas = canvas,
+        value = entry.item.name,
+        x = 92f,
+        y = 132f,
+        maxWidth = 980f,
+        size = 54f,
+        minSize = 36f,
+        color = text,
+        typefaceStyle = Typeface.BOLD,
+    )
+    drawFittedText(
+        canvas = canvas,
+        value = "${strings.categoryName(entry.category?.name ?: strings.t("uncategorized"))} / ${
+            strings.t("streakDays", "count" to entry.stats.currentStreak.toString())
+        }",
+        x = 94f,
+        y = 178f,
+        maxWidth = 1000f,
+        size = 26f,
+        minSize = 20f,
+        color = muted,
+        typefaceStyle = Typeface.BOLD,
     )
 
     drawStats(canvas, entry, strings, text, muted, primary)
     drawHeatmap(canvas, entry.heatmap, entry.item.colorTheme, strings, darkTheme, 92f, 340f, width - 184f)
 
-    if (badges.isNotEmpty()) {
-        val badgeTitlePaint = textPaint(25f, muted, Typeface.BOLD)
-        canvas.drawText(strings.t("earnedBadges"), 92f, 696f, badgeTitlePaint)
-        drawBadges(canvas, badges.take(8), 92f, 732f, text)
+    val badgeTitlePaint = textPaint(25f, muted, Typeface.BOLD)
+    canvas.drawText(strings.t("earnedBadges"), 92f, 696f, badgeTitlePaint)
+    if (badges.isEmpty()) {
+        val emptyPaint = textPaint(22f, muted, Typeface.BOLD)
+        canvas.drawText(strings.t("noEarnedBadges"), 92f, 770f, emptyPaint)
+    } else {
+        drawBadges(canvas, badges.take(3), strings, 92f, 736f, text)
     }
 
     val brandPaint = textPaint(22f, muted, Typeface.BOLD)
-    canvas.drawText("LumaLog / Habit Heatmap", 92f, height - 86f, brandPaint)
+    canvas.drawText("LumaLog / ${strings.t("brandTagline")}", 92f, 884f, brandPaint)
     return bitmap
 }
 
@@ -148,9 +169,18 @@ private fun drawStats(
     values.forEachIndexed { index, (value, label) ->
         val left = startX + index * itemWidth
         val valuePaint = textPaint(34f, if (index == 0) primary else text, Typeface.BOLD)
-        val labelPaint = textPaint(21f, muted, Typeface.BOLD)
         canvas.drawText(value, left, y, valuePaint)
-        canvas.drawText(label, left, y + 36f, labelPaint)
+        drawFittedText(
+            canvas = canvas,
+            value = label,
+            x = left,
+            y = y + 36f,
+            maxWidth = 190f,
+            size = 21f,
+            minSize = 16f,
+            color = muted,
+            typefaceStyle = Typeface.BOLD,
+        )
     }
 }
 
@@ -167,52 +197,73 @@ private fun drawHeatmap(
     val weeks = buildWeeks(days)
     if (weeks.isEmpty()) return
     val gap = 6f
-    val cell = (width - gap * (weeks.size - 1)) / weeks.size
+    val cellSize = (width - gap * (weeks.size - 1)) / weeks.size
     val labelPaint = textPaint(21f, if (darkTheme) Color.rgb(148, 163, 184) else Color.rgb(100, 116, 139), Typeface.BOLD)
-    val emptyColor = if (darkTheme) Color.rgb(28, 38, 52) else Color.rgb(230, 235, 242)
+    val emptyColor = if (darkTheme) {
+        blend(Color.rgb(17, 24, 34), Color.rgb(25, 34, 48), 0.86f)
+    } else {
+        blend(Color.WHITE, Color.rgb(238, 242, 247), 0.62f)
+    }
     val cellPaint = Paint(Paint.ANTI_ALIAS_FLAG)
 
     weeks.forEachIndexed { column, week ->
-        val dates = week.mapNotNull { day -> day?.date?.let { runCatching { LocalDate.parse(it) }.getOrNull() } }
+        val dates = week.mapNotNull { cell -> cell.day?.date?.let { runCatching { LocalDate.parse(it) }.getOrNull() } }
         val monthStart = dates.firstOrNull { it.dayOfMonth == 1 }
         val marker = monthStart ?: dates.firstOrNull().takeIf { column == 0 }
         if (marker != null) {
-            canvas.drawText(strings.monthLabel(marker), left + column * (cell + gap), top - 18f, labelPaint)
+            canvas.drawText(strings.monthLabel(marker), left + column * (cellSize + gap), top - 18f, labelPaint)
         }
-        week.forEachIndexed { row, day ->
-            if (day != null) {
-                cellPaint.color = heatmapColor(colorTheme, day.level, emptyColor)
-                val x = left + column * (cell + gap)
-                val y = top + row * (cell + gap)
-                canvas.drawRoundRect(RectF(x, y, x + cell, y + cell), 6f, 6f, cellPaint)
-            }
+        week.forEachIndexed { row, heatmapCell ->
+            val day = heatmapCell.day
+            if (!heatmapCell.visible) return@forEachIndexed
+            cellPaint.color = if (day == null) emptyColor else heatmapColor(colorTheme, day.level, emptyColor)
+            val x = left + column * (cellSize + gap)
+            val y = top + row * (cellSize + gap)
+            canvas.drawRoundRect(RectF(x, y, x + cellSize, y + cellSize), 6f, 6f, cellPaint)
         }
     }
 }
 
-private fun buildWeeks(days: List<HeatmapDay>): List<List<HeatmapDay?>> {
+private fun buildWeeks(days: List<HeatmapDay>): List<List<HeatmapCell>> {
     val parsedDays = days.mapNotNull { day ->
         runCatching { LocalDate.parse(day.date) }.getOrNull()?.let { it to day }
     }
     if (parsedDays.isEmpty()) return emptyList()
     val leadingSlots = parsedDays.first().first.dayOfWeek.value - 1
     val trailingSlots = (7 - ((leadingSlots + parsedDays.size) % 7)) % 7
-    return (List<HeatmapDay?>(leadingSlots) { null } +
-        parsedDays.map { it.second } +
-        List<HeatmapDay?>(trailingSlots) { null })
+    val firstDate = parsedDays.first().first
+    val leadingCells = List(leadingSlots) { index ->
+        val date = firstDate.minusDays((leadingSlots - index).toLong())
+        HeatmapCell(
+            day = HeatmapDay(date = date.toString(), count = 0, completed = false, level = 0),
+            visible = true,
+        )
+    }
+    return (leadingCells +
+        parsedDays.map { HeatmapCell(day = it.second, visible = true) } +
+        List(trailingSlots) { HeatmapCell(day = null, visible = false) })
         .chunked(7)
 }
 
-private fun drawBadges(canvas: Canvas, badges: List<Badge>, left: Float, top: Float, text: Int) {
+private fun drawBadges(canvas: Canvas, badges: List<Badge>, strings: LumaStrings, left: Float, top: Float, text: Int) {
     val itemWidth = 246f
     badges.forEachIndexed { index, badge ->
-        val row = index / 4
-        val column = index % 4
+        val column = index % 3
         val x = left + column * itemWidth
-        val y = top + row * 128f
+        val y = top
         drawBadgeIcon(canvas, badge, x + 24f, y, 66f)
-        val titlePaint = textPaint(21f, text, Typeface.BOLD).apply { textAlign = Paint.Align.CENTER }
-        canvas.drawText(badge.title, x + 57f, y + 98f, titlePaint)
+        drawFittedText(
+            canvas = canvas,
+            value = strings.badgeTitle(badge),
+            x = x + 57f,
+            y = y + 98f,
+            maxWidth = 170f,
+            size = 21f,
+            minSize = 15f,
+            color = text,
+            typefaceStyle = Typeface.BOLD,
+            align = Paint.Align.CENTER,
+        )
     }
 }
 
@@ -284,6 +335,29 @@ private fun textPaint(size: Float, color: Int, typefaceStyle: Int = Typeface.NOR
         textSize = size
         typeface = Typeface.create(Typeface.DEFAULT, typefaceStyle)
     }
+
+private fun drawFittedText(
+    canvas: Canvas,
+    value: String,
+    x: Float,
+    y: Float,
+    maxWidth: Float,
+    size: Float,
+    minSize: Float,
+    color: Int,
+    typefaceStyle: Int = Typeface.NORMAL,
+    align: Paint.Align = Paint.Align.LEFT,
+) {
+    var drawValue = value
+    val paint = textPaint(size, color, typefaceStyle).apply { textAlign = align }
+    while (paint.textSize > minSize && paint.measureText(drawValue) > maxWidth) {
+        paint.textSize -= 1f
+    }
+    while (drawValue.length > 4 && paint.measureText(drawValue) > maxWidth) {
+        drawValue = "${drawValue.dropLast(4)}..."
+    }
+    canvas.drawText(drawValue, x, y, paint)
+}
 
 private fun themeColor(theme: String): Int = when (theme) {
     "blue" -> Color.rgb(59, 130, 246)

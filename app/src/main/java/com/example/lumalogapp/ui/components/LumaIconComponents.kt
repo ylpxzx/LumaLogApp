@@ -1,7 +1,7 @@
 package com.example.lumalogapp.ui.components
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
@@ -19,35 +19,87 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.example.lumalogapp.R
 import com.example.lumalogapp.ui.i18n.LumaStrings
 import com.example.lumalogapp.ui.utils.themeColor
+
+const val DefaultLumaIconKey = "chuangye"
 
 data class LumaIconOption(
     val key: String,
     val theme: String,
+    val drawableRes: Int,
 )
 
 val lumaIconOptions = listOf(
-    LumaIconOption("rocket", "green"),
-    LumaIconOption("broken_heart", "red"),
-    LumaIconOption("shirt", "teal"),
-    LumaIconOption("game", "purple"),
-    LumaIconOption("briefcase", "green"),
+    LumaIconOption("chuangye", "green", R.drawable.ic_luma_chuangye),
+    LumaIconOption("xinsui", "red", R.drawable.ic_luma_xinsui),
+    LumaIconOption("jianshen", "orange", R.drawable.ic_luma_jianshen),
+    LumaIconOption("paobu1", "green", R.drawable.ic_luma_paobu1),
+    LumaIconOption("yuedu", "teal", R.drawable.ic_luma_yuedu),
+    LumaIconOption("daima", "purple", R.drawable.ic_luma_daima),
+    LumaIconOption("youxi", "purple", R.drawable.ic_luma_youxi),
+    LumaIconOption("naozhong", "orange", R.drawable.ic_luma_naozhong),
+    LumaIconOption("jinqian", "green", R.drawable.ic_luma_jinqian),
+    LumaIconOption("kafei", "orange", R.drawable.ic_luma_kafei),
+    LumaIconOption("youyong", "teal", R.drawable.ic_luma_youyong),
+    LumaIconOption("lanqiu", "orange", R.drawable.ic_luma_lanqiu),
+    LumaIconOption("kezuofan", "orange", R.drawable.ic_luma_kezuofan),
+    LumaIconOption("naichaxiaochi", "orange", R.drawable.ic_luma_naichaxiaochi),
+    LumaIconOption("lingshi", "orange", R.drawable.ic_luma_lingshi),
+    LumaIconOption("jucan", "orange", R.drawable.ic_luma_jucan),
+    LumaIconOption("jingchanghejiu", "red", R.drawable.ic_luma_jingchanghejiu),
+    LumaIconOption("smoking", "red", R.drawable.ic_luma_smoking),
+    LumaIconOption("bushengbing", "green", R.drawable.ic_luma_bushengbing),
+    LumaIconOption("yiyuan", "green", R.drawable.ic_luma_yiyuan),
+    LumaIconOption("meirong", "pink", R.drawable.ic_luma_meirong),
+    LumaIconOption("meirong_copy", "pink", R.drawable.ic_luma_meirong_copy),
+    LumaIconOption("aiqingyuehui", "pink", R.drawable.ic_luma_aiqingyuehui),
+    LumaIconOption("shejiao", "blue", R.drawable.ic_luma_shejiao),
+    LumaIconOption("tongxun", "blue", R.drawable.ic_luma_tongxun),
+    LumaIconOption("lvyou", "teal", R.drawable.ic_luma_lvyou),
+    LumaIconOption("qiche", "blue", R.drawable.ic_luma_qiche),
+    LumaIconOption("zhufang", "blue", R.drawable.ic_luma_zhufang),
+    LumaIconOption("weixiuoff", "gray", R.drawable.ic_luma_weixiuoff),
+    LumaIconOption("xiangzi", "gray", R.drawable.ic_luma_xiangzi),
+    LumaIconOption("chuangye3", "green", R.drawable.ic_luma_chuangye3),
+    LumaIconOption("a_068_jianzhi", "blue", R.drawable.ic_luma_a_068_jianzhi),
+    LumaIconOption("fabu", "green", R.drawable.ic_luma_fabu),
+    LumaIconOption("shouye", "green", R.drawable.ic_luma_shouye),
+    LumaIconOption("dantupailie", "gray", R.drawable.ic_luma_dantupailie),
+    LumaIconOption("luyin", "green", R.drawable.ic_luma_luyin),
+    LumaIconOption("sanjiaoxing", "orange", R.drawable.ic_luma_sanjiaoxing),
+    LumaIconOption("xiazai49", "blue", R.drawable.ic_luma_xiazai49),
+    LumaIconOption("yule", "purple", R.drawable.ic_luma_yule),
+    LumaIconOption("qita", "gray", R.drawable.ic_luma_qita),
+    LumaIconOption("qita1", "gray", R.drawable.ic_luma_qita1),
+    LumaIconOption("qita2", "gray", R.drawable.ic_luma_qita2),
+    LumaIconOption("qitafuwu", "gray", R.drawable.ic_luma_qitafuwu),
 )
 
+fun normalizeLumaIconKey(key: String): String {
+    val normalized = when (key) {
+        "briefcase" -> "chuangye"
+        "rocket" -> "fabu"
+        "broken_heart" -> "xinsui"
+        "shirt" -> "meirong"
+        "game" -> "youxi"
+        "meirong-copy" -> "meirong_copy"
+        "a-068_jianzhi" -> "a_068_jianzhi"
+        else -> key
+    }
+    return if (lumaIconOptions.any { it.key == normalized }) normalized else DefaultLumaIconKey
+}
+
 private fun lumaIconOption(key: String): LumaIconOption {
-    return lumaIconOptions.firstOrNull { it.key == key } ?: lumaIconOptions.last()
+    val normalizedKey = normalizeLumaIconKey(key)
+    return lumaIconOptions.firstOrNull { it.key == normalizedKey } ?: lumaIconOptions.first()
 }
 
 @Composable
@@ -72,122 +124,12 @@ fun LumaIconBadge(
             ),
         contentAlignment = Alignment.Center,
     ) {
-        LumaIconGlyph(
-            key = option.key,
-            color = color,
-            modifier = Modifier.size(size * 0.58f),
+        Image(
+            painter = painterResource(option.drawableRes),
+            contentDescription = null,
+            colorFilter = ColorFilter.tint(color),
+            modifier = Modifier.size(size * 0.56f),
         )
-    }
-}
-
-@Composable
-private fun LumaIconGlyph(key: String, color: Color, modifier: Modifier = Modifier) {
-    val surfaceColor = MaterialTheme.colorScheme.surface
-    Canvas(modifier = modifier) {
-        val w = size.width
-        val h = size.height
-        val stroke = Stroke(
-            width = w * 0.105f,
-            cap = StrokeCap.Round,
-            join = StrokeJoin.Round,
-        )
-        when (key) {
-            "rocket" -> {
-                val body = Path().apply {
-                    moveTo(w * 0.34f, h * 0.66f)
-                    cubicTo(w * 0.42f, h * 0.34f, w * 0.62f, h * 0.18f, w * 0.78f, h * 0.16f)
-                    cubicTo(w * 0.78f, h * 0.34f, w * 0.64f, h * 0.56f, w * 0.36f, h * 0.68f)
-                    close()
-                }
-                drawPath(body, color.copy(alpha = 0.18f))
-                drawPath(body, color, style = stroke)
-                drawCircle(color, radius = w * 0.055f, center = Offset(w * 0.62f, h * 0.35f))
-                drawLine(color, Offset(w * 0.34f, h * 0.66f), Offset(w * 0.21f, h * 0.79f), stroke.width, StrokeCap.Round)
-                drawLine(color, Offset(w * 0.42f, h * 0.72f), Offset(w * 0.37f, h * 0.87f), stroke.width, StrokeCap.Round)
-            }
-
-            "broken_heart" -> {
-                val heart = Path().apply {
-                    moveTo(w * 0.50f, h * 0.78f)
-                    cubicTo(w * 0.18f, h * 0.57f, w * 0.15f, h * 0.29f, w * 0.35f, h * 0.24f)
-                    cubicTo(w * 0.45f, h * 0.21f, w * 0.50f, h * 0.28f, w * 0.54f, h * 0.35f)
-                    cubicTo(w * 0.60f, h * 0.24f, w * 0.72f, h * 0.20f, w * 0.83f, h * 0.31f)
-                    cubicTo(w * 0.98f, h * 0.48f, w * 0.78f, h * 0.65f, w * 0.50f, h * 0.78f)
-                    close()
-                }
-                drawPath(heart, color.copy(alpha = 0.92f))
-                val crack = Path().apply {
-                    moveTo(w * 0.55f, h * 0.36f)
-                    lineTo(w * 0.46f, h * 0.49f)
-                    lineTo(w * 0.56f, h * 0.55f)
-                    lineTo(w * 0.48f, h * 0.72f)
-                }
-                drawPath(crack, surfaceColor.copy(alpha = 0.88f), style = Stroke(width = w * 0.08f, cap = StrokeCap.Round, join = StrokeJoin.Round))
-            }
-
-            "shirt" -> {
-                val shirt = Path().apply {
-                    moveTo(w * 0.25f, h * 0.28f)
-                    lineTo(w * 0.38f, h * 0.21f)
-                    quadraticBezierTo(w * 0.50f, h * 0.34f, w * 0.62f, h * 0.21f)
-                    lineTo(w * 0.75f, h * 0.28f)
-                    lineTo(w * 0.82f, h * 0.44f)
-                    lineTo(w * 0.69f, h * 0.50f)
-                    lineTo(w * 0.69f, h * 0.79f)
-                    lineTo(w * 0.31f, h * 0.79f)
-                    lineTo(w * 0.31f, h * 0.50f)
-                    lineTo(w * 0.18f, h * 0.44f)
-                    close()
-                }
-                drawPath(shirt, color.copy(alpha = 0.18f))
-                drawPath(shirt, color, style = stroke)
-                drawLine(color, Offset(w * 0.42f, h * 0.25f), Offset(w * 0.58f, h * 0.25f), stroke.width * 0.75f, StrokeCap.Round)
-            }
-
-            "game" -> {
-                drawRoundRect(
-                    color = color.copy(alpha = 0.18f),
-                    topLeft = Offset(w * 0.15f, h * 0.34f),
-                    size = Size(w * 0.70f, h * 0.38f),
-                    cornerRadius = CornerRadius(w * 0.18f, w * 0.18f),
-                )
-                drawRoundRect(
-                    color = color,
-                    topLeft = Offset(w * 0.15f, h * 0.34f),
-                    size = Size(w * 0.70f, h * 0.38f),
-                    cornerRadius = CornerRadius(w * 0.18f, w * 0.18f),
-                    style = stroke,
-                )
-                drawLine(color, Offset(w * 0.31f, h * 0.48f), Offset(w * 0.31f, h * 0.60f), stroke.width * 0.72f, StrokeCap.Round)
-                drawLine(color, Offset(w * 0.25f, h * 0.54f), Offset(w * 0.37f, h * 0.54f), stroke.width * 0.72f, StrokeCap.Round)
-                drawCircle(color, radius = w * 0.035f, center = Offset(w * 0.64f, h * 0.50f))
-                drawCircle(color, radius = w * 0.035f, center = Offset(w * 0.73f, h * 0.57f))
-            }
-
-            else -> {
-                drawRoundRect(
-                    color = color.copy(alpha = 0.18f),
-                    topLeft = Offset(w * 0.18f, h * 0.36f),
-                    size = Size(w * 0.64f, h * 0.42f),
-                    cornerRadius = CornerRadius(w * 0.09f, w * 0.09f),
-                )
-                drawRoundRect(
-                    color = color,
-                    topLeft = Offset(w * 0.18f, h * 0.36f),
-                    size = Size(w * 0.64f, h * 0.42f),
-                    cornerRadius = CornerRadius(w * 0.09f, w * 0.09f),
-                    style = stroke,
-                )
-                drawRoundRect(
-                    color = color,
-                    topLeft = Offset(w * 0.39f, h * 0.22f),
-                    size = Size(w * 0.22f, h * 0.18f),
-                    cornerRadius = CornerRadius(w * 0.05f, w * 0.05f),
-                    style = stroke,
-                )
-                drawLine(color, Offset(w * 0.20f, h * 0.51f), Offset(w * 0.80f, h * 0.51f), stroke.width * 0.72f, StrokeCap.Round)
-            }
-        }
     }
 }
 
@@ -202,7 +144,7 @@ fun LumaIconPicker(
         Text(strings.t("icon"), fontWeight = FontWeight.Bold)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             lumaIconOptions.forEach { option ->
-                val selected = selectedKey == option.key
+                val selected = normalizeLumaIconKey(selectedKey) == option.key
                 val color = themeColor(option.theme)
                 Box(
                     modifier = Modifier

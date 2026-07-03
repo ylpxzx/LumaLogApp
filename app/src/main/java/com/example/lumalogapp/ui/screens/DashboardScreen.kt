@@ -1,6 +1,5 @@
 package com.example.lumalogapp.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,12 +9,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -32,15 +31,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.lumalogapp.R
 import com.example.lumalogapp.data.Category
 import com.example.lumalogapp.data.DashboardMode
-import com.example.lumalogapp.data.LanguagePreference
 import com.example.lumalogapp.data.LumaData
 import com.example.lumalogapp.data.buildDashboardItems
 import com.example.lumalogapp.ui.components.ItemCard
@@ -107,10 +103,10 @@ fun DashboardScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
-                    DashboardHeader(onOpenSettings = onOpenSettings)
+                    DashboardHeader(strings = strings, onOpenSettings = onOpenSettings)
                 }
                 item {
-                    DashboardIntroImage(language = data.preferences.language)
+                    DashboardIntroCard(strings = strings)
                 }
 
                 if (dashboardItems.isEmpty()) {
@@ -164,28 +160,28 @@ fun DashboardScreen(
 }
 
 @Composable
-private fun DashboardHeader(onOpenSettings: () -> Unit) {
+private fun DashboardHeader(strings: LumaStrings, onOpenSettings: () -> Unit) {
     val colorScheme = MaterialTheme.colorScheme
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        LumaLogo()
+        LumaLogo(strings)
         Box(
             modifier = Modifier
-                .size(50.dp)
+                .size(42.dp)
                 .clip(CircleShape)
                 .background(colorScheme.surface.copy(alpha = 0.94f))
-                .border(1.dp, colorScheme.outline.copy(alpha = 0.56f), CircleShape)
+                .border(1.dp, colorScheme.outline.copy(alpha = 0.28f), CircleShape)
                 .clickable(onClick = onOpenSettings),
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = "⚙",
+                text = "\u2699",
                 color = colorScheme.onSurfaceVariant,
-                fontSize = 22.sp,
-                lineHeight = 24.sp,
+                fontSize = 18.sp,
+                lineHeight = 20.sp,
                 fontWeight = FontWeight.Medium,
             )
         }
@@ -193,20 +189,116 @@ private fun DashboardHeader(onOpenSettings: () -> Unit) {
 }
 
 @Composable
-private fun DashboardIntroImage(language: LanguagePreference) {
-    val imageRes = if (language == LanguagePreference.En) {
-        R.drawable.dashboard_intro_en
+private fun DashboardIntroCard(strings: LumaStrings) {
+    val colorScheme = MaterialTheme.colorScheme
+    val isDark = isLumaDashboardDark()
+    val accent = colorScheme.primary
+    val mutedCell = if (isDark) {
+        colorScheme.surfaceVariant.copy(alpha = 0.82f)
     } else {
-        R.drawable.dashboard_intro_zh
+        Color(0xFFD9E4F3)
     }
-    Image(
-        painter = painterResource(imageRes),
-        contentDescription = null,
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .aspectRatio(4.5f),
-        contentScale = ContentScale.FillBounds,
-    )
+            .height(86.dp)
+            .clip(RoundedCornerShape(22.dp))
+            .background(
+                Brush.horizontalGradient(
+                    if (isDark) {
+                        listOf(
+                            colorScheme.surface.copy(alpha = 0.96f),
+                            colorScheme.surfaceVariant.copy(alpha = 0.72f),
+                        )
+                    } else {
+                        listOf(
+                            Color(0xFFEFFBF7),
+                            Color(0xFFF7FEFB),
+                        )
+                    },
+                ),
+            )
+            .border(1.dp, colorScheme.outline.copy(alpha = if (isDark) 0.22f else 0.14f), RoundedCornerShape(22.dp))
+            .padding(horizontal = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        IntroHeatmapMark(accent = accent, mutedCell = mutedCell, isDark = isDark)
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = strings.t("brandTagline"),
+                color = colorScheme.onSurface,
+                fontSize = 12.sp,
+                lineHeight = 19.sp,
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = strings.t("dashboardIntroSubtitle"),
+                color = colorScheme.onSurfaceVariant,
+                fontSize = 9.sp,
+                lineHeight = 14.sp,
+                fontWeight = FontWeight.Normal,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            IntroLegend(color = accent, text = strings.t("checked"))
+            IntroLegend(color = mutedCell, text = strings.t("unchecked"))
+            IntroLegend(color = colorScheme.surfaceVariant.copy(alpha = if (isDark) 0.48f else 0.72f), text = strings.t("noData"))
+        }
+    }
+}
+
+@Composable
+private fun IntroHeatmapMark(accent: Color, mutedCell: Color, isDark: Boolean) {
+    Box(
+        modifier = Modifier
+            .size(width = 74.dp, height = 58.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(accent.copy(alpha = if (isDark) 0.15f else 0.08f))
+            .padding(11.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            repeat(4) { row ->
+                Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    repeat(4) { column ->
+                        val lit = (row == 0 && column < 2) || (row == 1 && column in 1..2) || (row == 2 && column == 2) || (row == 3 && column == 0)
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(if (lit) accent else mutedCell),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun IntroLegend(color: Color, text: String) {
+    val colorScheme = MaterialTheme.colorScheme
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Box(
+            modifier = Modifier
+                .width(18.dp)
+                .height(7.dp)
+                .clip(RoundedCornerShape(4.dp))
+                .background(color),
+        )
+        Text(
+            text = text,
+            color = colorScheme.onSurfaceVariant,
+            fontSize = 11.sp,
+            lineHeight = 13.sp,
+            maxLines = 1,
+        )
+    }
 }
 
 @Composable

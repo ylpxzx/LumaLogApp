@@ -46,6 +46,7 @@ fun ItemCard(
     onOpenEdit: (Long) -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    val isDark = isLumaCardDark()
     val visibleStats = listOf(
         preferences.showCurrentStreak,
         preferences.showLongestStreak,
@@ -62,7 +63,7 @@ fun ItemCard(
             ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = colorScheme.surface.copy(alpha = 0.97f)),
-        border = BorderStroke(1.dp, colorScheme.outline.copy(alpha = 0.58f)),
+        border = BorderStroke(1.dp, colorScheme.outline.copy(alpha = if (isDark) 0.28f else 0.22f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
@@ -78,26 +79,41 @@ fun ItemCard(
                     size = 38.dp,
                 )
                 Spacer(Modifier.width(11.dp))
-                Row(
+                Column(
                     modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(7.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
-                    Text(
-                        text = entry.item.name,
-                        color = colorScheme.onSurface,
-                        fontSize = 18.sp,
-                        lineHeight = 21.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    if (preferences.showTodayStatus) {
-                        StatusChip(status = entry.status, strings = strings)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = entry.item.name,
+                            color = colorScheme.onSurface,
+                            fontSize = 18.sp,
+                            lineHeight = 21.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                        if (preferences.showTodayStatus) {
+                            StatusChip(status = entry.status, strings = strings)
+                        }
+                    }
+                    if (entry.item.description.isNotBlank()) {
+                        Text(
+                            text = entry.item.description,
+                            color = colorScheme.onSurfaceVariant.copy(alpha = 0.72f),
+                            fontSize = 11.sp,
+                            lineHeight = 14.sp,
+                            fontWeight = FontWeight.Normal,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
                 }
-                Spacer(Modifier.width(7.dp))
+                Spacer(Modifier.width(6.dp))
                 HabitCategoryPill(entry.category, entry.item.colorTheme, strings)
             }
 
@@ -110,9 +126,7 @@ fun ItemCard(
                 colorTheme = entry.item.colorTheme,
                 strings = strings,
                 showDayDetails = false,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
+                modifier = Modifier.fillMaxWidth(),
             )
         }
     }
@@ -124,24 +138,24 @@ private fun HabitCategoryPill(category: Category?, fallbackTheme: String, string
     val isDark = isLumaCardDark()
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(color.copy(alpha = if (isDark) 0.16f else 0.08f))
-            .border(1.dp, color.copy(alpha = if (isDark) 0.26f else 0.14f), RoundedCornerShape(12.dp))
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .border(1.dp, color.copy(alpha = if (isDark) 0.24f else 0.12f), RoundedCornerShape(10.dp))
+            .padding(horizontal = 6.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Box(
             Modifier
-                .size(6.dp)
-                .clip(RoundedCornerShape(3.dp))
+                .size(5.dp)
+                .clip(RoundedCornerShape(2.5.dp))
                 .background(color.copy(alpha = 0.82f)),
         )
         Text(
             text = strings.categoryName(category?.name ?: strings.t("uncategorized")),
             color = color.copy(alpha = 0.90f),
-            fontSize = 10.sp,
-            lineHeight = 12.sp,
+            fontSize = 9.sp,
+            lineHeight = 11.sp,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -155,15 +169,15 @@ private fun StatusChip(status: CheckinStatus, strings: LumaStrings) {
     Text(
         text = strings.statusText(status),
         color = color,
-        fontSize = 10.sp,
-        lineHeight = 12.sp,
+        fontSize = 9.sp,
+        lineHeight = 11.sp,
         fontWeight = FontWeight.SemiBold,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(color.copy(alpha = 0.11f))
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .padding(horizontal = 6.dp, vertical = 3.dp),
     )
 }
 
@@ -209,7 +223,6 @@ private fun StatsRow(entry: DashboardItem, preferences: AppPreferences, strings:
             .fillMaxWidth()
             .clip(RoundedCornerShape(13.dp))
             .background(colorScheme.surfaceVariant.copy(alpha = if (isLumaCardDark()) 0.54f else 0.42f))
-            .border(1.dp, colorScheme.outline.copy(alpha = 0.42f), RoundedCornerShape(13.dp))
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

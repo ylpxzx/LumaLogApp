@@ -1,5 +1,6 @@
 package com.example.lumalogapp.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -53,6 +54,16 @@ fun LumaLogRoot() {
         store.save(next)
     }
 
+    fun navigateBack() {
+        screen = when (val current = screen) {
+            Screen.Dashboard -> Screen.Dashboard
+            Screen.Settings -> Screen.Dashboard
+            is Screen.Checkin -> Screen.Dashboard
+            is Screen.Makeup -> Screen.Checkin(current.itemId)
+            is Screen.Editor -> Screen.Dashboard
+        }
+    }
+
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/json"),
     ) { uri ->
@@ -73,6 +84,9 @@ fun LumaLogRoot() {
     }
 
     LumaLogAppTheme(darkTheme = darkTheme) {
+        BackHandler(enabled = screen != Screen.Dashboard) {
+            navigateBack()
+        }
         Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
             when (val current = screen) {
                 Screen.Dashboard -> DashboardScreen(
@@ -89,7 +103,7 @@ fun LumaLogRoot() {
                 Screen.Settings -> SettingsScreen(
                     data = data,
                     strings = strings,
-                    onBack = { screen = Screen.Dashboard },
+                    onBack = ::navigateBack,
                     onUpdatePreferences = { updateData(data.copy(preferences = it)) },
                     onCreateCategory = { name, colorTheme ->
                         updateData(store.createCategory(data, name, colorTheme))
@@ -105,7 +119,7 @@ fun LumaLogRoot() {
                     data = data,
                     itemId = current.itemId,
                     strings = strings,
-                    onBack = { screen = Screen.Dashboard },
+                    onBack = ::navigateBack,
                     onOpenMakeup = { screen = Screen.Makeup(current.itemId) },
                     onSaveShareImage = { entry -> saveHabitImage(context, entry, strings, darkTheme) },
                     onCheckin = {
@@ -118,7 +132,7 @@ fun LumaLogRoot() {
                     data = data,
                     itemId = current.itemId,
                     strings = strings,
-                    onBack = { screen = Screen.Checkin(current.itemId) },
+                    onBack = ::navigateBack,
                     onConfirm = { dates ->
                         updateData(store.makeupCheckins(data, current.itemId, dates))
                         message = strings.t("makeupConfirmed", "count" to dates.size.toString())
@@ -130,7 +144,7 @@ fun LumaLogRoot() {
                     data = data,
                     itemId = current.itemId,
                     strings = strings,
-                    onBack = { screen = Screen.Dashboard },
+                    onBack = ::navigateBack,
                     onSave = { item ->
                         updateData(
                             if (current.itemId == null) store.createItem(data, item)
@@ -149,6 +163,12 @@ fun LumaLogRoot() {
                             updateData(store.archiveItem(data, current.itemId))
                         }
                         screen = Screen.Dashboard
+                    },
+                    onCreateCategory = { name, colorTheme ->
+                        val existingIds = data.categories.map { it.id }.toSet()
+                        val next = store.createCategory(data, name, colorTheme)
+                        updateData(next)
+                        next.categories.firstOrNull { it.id !in existingIds }?.id
                     },
                 )
             }

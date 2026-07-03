@@ -135,7 +135,7 @@ class LumaStore(private val context: Context) {
     }
 }
 
-fun buildDashboardItems(data: LumaData, dayCount: Long = 153): List<DashboardItem> {
+fun buildDashboardItems(data: LumaData, dayCount: Long = defaultHeatmapDayCount()): List<DashboardItem> {
     val categories = data.categories.associateBy { it.id }
     return data.items
         .filter { it.deletedAt.isEmpty() && it.archivedAt.isEmpty() && it.showOnDashboard }
@@ -155,6 +155,9 @@ fun buildDashboardItems(data: LumaData, dayCount: Long = 153): List<DashboardIte
             )
         }
 }
+
+private fun defaultHeatmapDayCount(): Long =
+    154L + LocalDate.now().dayOfWeek.value.toLong()
 
 fun makeupUsedThisMonth(data: LumaData, itemId: Long): Int {
     val currentMonth = YearMonth.now()
@@ -203,11 +206,11 @@ fun userBadges(data: LumaData): List<Badge> {
     val maxLongestStreak = stats.maxOfOrNull { it.longestStreak } ?: 0
     val completedHabits = stats.count { it.completedDays > 0 }
     return listOf(
-        Badge("first_habit_light", "第一束光", "任意 habit 完成第一次签到", "bronze", totalCheckins >= 1),
-        Badge("seven_day_runner", "七日同行", "任意 habit 最长连续达到 7 天", "silver", maxLongestStreak >= 7),
-        Badge("thirty_day_runner", "一月成线", "任意 habit 最长连续达到 30 天", "gold", maxLongestStreak >= 30),
-        Badge("three_habits_lit", "三线并进", "至少 3 个 habit 有完成记录", "gold", completedHabits >= 3),
-        Badge("hundred_total_lights", "百次点亮", "所有 habit 累计签到达到 100 次", "gold", totalCheckins >= 100),
+        Badge("first_habit_light", "第一束光", "任意习惯完成第一次签到", "bronze", totalCheckins >= 1),
+        Badge("seven_day_runner", "七日同行", "任意习惯最长连续达到 7 天", "silver", maxLongestStreak >= 7),
+        Badge("thirty_day_runner", "一月成线", "任意习惯最长连续达到 30 天", "gold", maxLongestStreak >= 30),
+        Badge("three_habits_lit", "三线并进", "至少 3 个习惯有完成记录", "gold", completedHabits >= 3),
+        Badge("hundred_total_lights", "百次点亮", "所有习惯累计签到达到 100 次", "gold", totalCheckins >= 100),
     )
 }
 

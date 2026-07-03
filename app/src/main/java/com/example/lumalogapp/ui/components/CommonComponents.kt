@@ -132,7 +132,7 @@ fun ColorThemePicker(selected: String, strings: LumaStrings, onSelect: (String) 
 }
 
 @Composable
-fun LumaLogo() {
+fun LumaLogo(strings: LumaStrings) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -244,7 +244,7 @@ fun LumaLogo() {
                     )
                 }
                 Text(
-                    text = "HABIT HEATMAP",
+                    text = strings.t("brandTagline"),
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.3.sp,
@@ -269,7 +269,7 @@ fun RoundIconButton(onClick: () -> Unit, content: @Composable () -> Unit) {
 }
 
 @Composable
-fun AchievementBadge(badge: Badge, modifier: Modifier = Modifier) {
+fun AchievementBadge(badge: Badge, modifier: Modifier = Modifier, strings: LumaStrings? = null) {
     Column(
         modifier = modifier.width(76.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -277,7 +277,7 @@ fun AchievementBadge(badge: Badge, modifier: Modifier = Modifier) {
     ) {
         BadgeIcon(badge = badge, modifier = Modifier.size(54.dp))
         Text(
-            text = badge.title,
+            text = strings?.badgeTitle(badge) ?: badge.title,
             color = MaterialTheme.colorScheme.onSurface,
             fontSize = 11.sp,
             lineHeight = 13.sp,
