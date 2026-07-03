@@ -6,11 +6,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -32,6 +34,8 @@ import com.example.lumalogapp.ui.i18n.LumaStrings
 import com.example.lumalogapp.ui.utils.heatmapColor
 import java.time.LocalDate
 
+private const val HeatmapRowCount = 7
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ContributionHeatmap(
@@ -45,16 +49,18 @@ fun ContributionHeatmap(
     modifier: Modifier = Modifier,
 ) {
     var selectedDay by remember(days) { mutableStateOf<HeatmapDay?>(null) }
-    val emptySquareColor =
-        if (MaterialTheme.colorScheme.background == Color(0xFF0C1118)) Color(0xFF1C2634) else Color(0xFFE6EBF2)
+    val colorScheme = MaterialTheme.colorScheme
+    val isDark = colorScheme.background == Color(0xFF0C1118)
+    val emptySquareColor = if (isDark) colorScheme.surfaceVariant.copy(alpha = 0.82f) else Color(0xFFE8EDF4)
+    val labelColor = colorScheme.onSurfaceVariant
     val weeks = remember(days) {
         val parsedDays = days.mapNotNull { day ->
             runCatching { LocalDate.parse(day.date) }.getOrNull()?.let { date -> date to day }
         }
         val leadingSlots = parsedDays.firstOrNull()?.first?.dayOfWeek?.value?.minus(1) ?: 0
-        val trailingSlots = (7 - ((leadingSlots + parsedDays.size) % 7)) % 7
+        val trailingSlots = (HeatmapRowCount - ((leadingSlots + parsedDays.size) % HeatmapRowCount)) % HeatmapRowCount
         (List<HeatmapDay?>(leadingSlots) { null } + parsedDays.map { it.second } + List<HeatmapDay?>(trailingSlots) { null })
-            .chunked(7)
+            .chunked(HeatmapRowCount)
     }
     val monthMarkers = remember(weeks, strings) {
         weeks.mapIndexed { index, week ->
@@ -65,55 +71,64 @@ fun ContributionHeatmap(
         }
     }
 
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(3.dp),
-        ) {
-            monthMarkers.forEach { label ->
-                Box(modifier = Modifier.weight(1f)) {
-                    if (label != null) {
-                        Text(
-                            text = label,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 10.sp,
-                            lineHeight = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            modifier = Modifier.wrapContentWidth(unbounded = true),
-                        )
-                    }
-                }
-            }
-        }
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            weeks.forEach { week ->
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    week.forEach { day ->
-                        val shape = RoundedCornerShape(3.dp)
-                        val canClick = day != null && onDayClick != null && clickableDates.contains(day.date)
-                        val isSelected = day != null && (selectedDates.contains(day.date) || (showDayDetails && selectedDay?.date == day.date))
-                        var cellModifier = Modifier
-                            .fillMaxWidth()
-                            .aspectRatio(1f)
-                            .clip(shape)
-                            .background(
-                                if (day == null) Color.Transparent else heatmapColor(colorTheme, day.level, emptySquareColor),
-                            )
-                            .alpha(if (onDayClick != null && day != null && !canClick) 0.36f else 1f)
-                        if (isSelected) {
-                            cellModifier = cellModifier.border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.78f), shape)
-                        }
-                        if (day != null) {
-                            when {
-                                canClick -> cellModifier = cellModifier.combinedClickable(onClick = { onDayClick?.invoke(day) })
-                                showDayDetails && onDayClick == null -> cellModifier = cellModifier.combinedClickable(onClick = { selectedDay = day })
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val weekCount = weeks.size.coerceAtLeast(1)
+            val horizontalGap = 3.dp
+            val verticalGap = 4.dp
+            val cellSize = ((maxWidth - horizontalGap * (weekCount - 1).toFloat()) / weekCount.toFloat()).coerceAtLeast(1.dp)
+
+            Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(horizontalGap),
+                ) {
+                    monthMarkers.forEach { label ->
+                        Box(modifier = Modifier.width(cellSize)) {
+                            if (label != null) {
+                                Text(
+                                    text = label,
+                                    color = labelColor,
+                                    fontSize = 10.sp,
+                                    lineHeight = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    maxLines = 1,
+                                    modifier = Modifier.wrapContentWidth(unbounded = true),
+                                )
                             }
                         }
+                    }
+                }
 
-                        Box(
-                            modifier = cellModifier,
-                        )
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(horizontalGap)) {
+                    weeks.forEach { week ->
+                        Column(modifier = Modifier.width(cellSize), verticalArrangement = Arrangement.spacedBy(verticalGap)) {
+                            week.forEach { day ->
+                                val shape = RoundedCornerShape(3.dp)
+                                val canClick = day != null && onDayClick != null && clickableDates.contains(day.date)
+                                val isSelected = day != null && (selectedDates.contains(day.date) || (showDayDetails && selectedDay?.date == day.date))
+                                var cellModifier = Modifier
+                                    .size(cellSize)
+                                    .clip(shape)
+                                    .background(
+                                        if (day == null) Color.Transparent else heatmapColor(colorTheme, day.level, emptySquareColor),
+                                    )
+                                    .alpha(if (onDayClick != null && day != null && !canClick) 0.36f else 1f)
+                                if (isSelected) {
+                                    cellModifier = cellModifier.border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.78f), shape)
+                                }
+                                if (day != null) {
+                                    when {
+                                        canClick -> cellModifier = cellModifier.combinedClickable(onClick = { onDayClick?.invoke(day) })
+                                        showDayDetails && onDayClick == null -> cellModifier = cellModifier.combinedClickable(onClick = { selectedDay = day })
+                                    }
+                                }
+
+                                Box(
+                                    modifier = cellModifier,
+                                )
+                            }
+                        }
                     }
                 }
             }

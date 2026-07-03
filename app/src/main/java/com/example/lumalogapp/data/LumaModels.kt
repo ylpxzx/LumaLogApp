@@ -69,6 +69,7 @@ data class Item(
     val name: String,
     val description: String = "",
     val colorTheme: String = "green",
+    val iconKey: String = "briefcase",
     val startDate: String = LocalDate.now().toString(),
     val endDate: String = "",
     val isUnlimited: Boolean = true,
@@ -225,6 +226,7 @@ private fun Item.toJson() = JSONObject()
     .put("name", name)
     .put("description", description)
     .put("color_theme", colorTheme)
+    .put("icon_key", iconKey)
     .put("start_date", startDate)
     .put("end_date", endDate)
     .put("is_unlimited", isUnlimited)
@@ -246,6 +248,7 @@ private fun JSONObject.toItem() = Item(
     name = optString("name"),
     description = optString("description"),
     colorTheme = optString("color_theme", "green"),
+    iconKey = optString("icon_key", "briefcase"),
     startDate = optString("start_date", LocalDate.now().toString()),
     endDate = optString("end_date"),
     isUnlimited = optBoolean("is_unlimited", true),

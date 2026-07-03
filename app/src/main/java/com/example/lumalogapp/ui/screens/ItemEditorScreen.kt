@@ -33,8 +33,10 @@ import com.example.lumalogapp.data.LumaData
 import com.example.lumalogapp.data.TimeMode
 import com.example.lumalogapp.ui.components.ColorThemePicker
 import com.example.lumalogapp.ui.components.FormPanel
+import com.example.lumalogapp.ui.components.LumaIconPicker
 import com.example.lumalogapp.ui.components.SwitchRow
 import com.example.lumalogapp.ui.components.TopTitle
+import com.example.lumalogapp.ui.components.lumaIconOptions
 import com.example.lumalogapp.ui.i18n.LumaStrings
 import java.time.LocalDate
 
@@ -57,6 +59,9 @@ fun ItemEditorScreen(
     var description by remember(itemId) { mutableStateOf(existing?.description ?: "") }
     var categoryId by remember(itemId) { mutableStateOf(existing?.categoryId ?: defaultCategoryId) }
     var colorTheme by remember(itemId) { mutableStateOf(existing?.colorTheme ?: visibleCategories.firstOrNull { it.id == categoryId }?.colorTheme ?: "green") }
+    var iconKey by remember(itemId) {
+        mutableStateOf(existing?.iconKey?.takeIf { savedKey -> lumaIconOptions.any { it.key == savedKey } } ?: "briefcase")
+    }
     var startDate by remember(itemId) { mutableStateOf(existing?.startDate ?: LocalDate.now().toString()) }
     var endDate by remember(itemId) { mutableStateOf(existing?.endDate ?: "") }
     var isUnlimited by remember(itemId) { mutableStateOf(existing?.isUnlimited ?: true) }
@@ -103,6 +108,11 @@ fun ItemEditorScreen(
                         label = { Text(strings.t("description")) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
+                    )
+                    LumaIconPicker(
+                        selectedKey = iconKey,
+                        strings = strings,
+                        onSelect = { iconKey = it },
                     )
                     Text(strings.t("category"), fontWeight = FontWeight.Bold)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -196,6 +206,7 @@ fun ItemEditorScreen(
                                     name = name.trim(),
                                     description = description.trim(),
                                     colorTheme = colorTheme,
+                                    iconKey = iconKey,
                                     startDate = startDate.ifBlank { LocalDate.now().toString() },
                                     endDate = if (isUnlimited) "" else endDate,
                                     isUnlimited = isUnlimited,
