@@ -89,18 +89,25 @@ class LumaStore(private val context: Context) {
         return data.copy(categories = data.categories.filterNot { it.id == categoryId })
     }
 
-    fun checkIn(data: LumaData, itemId: Long): LumaData {
+    fun checkIn(data: LumaData, itemId: Long, note: String = ""): LumaData {
         val nextId = nextId(data.checkins.map { it.id })
+        val today = LocalDate.now().toString()
         val now = LocalTime.now().withSecond(0).withNano(0).toString()
         val createdAt = OffsetDateTime.now().toString()
+        val trimmedNote = note.trim()
         val checkin = Checkin(
             id = nextId,
             itemId = itemId,
-            checkinDate = LocalDate.now().toString(),
+            checkinDate = today,
             checkinTime = now,
+            note = trimmedNote,
             createdAt = createdAt,
         )
-        return data.copy(checkins = data.checkins + checkin)
+        return data.copy(
+            checkins = data.checkins.map {
+                if (it.itemId == itemId && it.checkinDate == today) it.copy(note = trimmedNote) else it
+            } + checkin,
+        )
     }
 
     fun makeupCheckins(data: LumaData, itemId: Long, dates: List<String>): LumaData {

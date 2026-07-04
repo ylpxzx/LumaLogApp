@@ -44,6 +44,7 @@ private data class HeatmapCell(
 )
 
 private data class ShareColors(
+    val dark: Boolean,
     val primary: Int,
     val primaryDark: Int,
     val bg: Int,
@@ -52,6 +53,7 @@ private data class ShareColors(
     val muted: Int,
     val outline: Int,
     val emptyCell: Int,
+    val iconTileEnd: Int,
 )
 
 private data class ShareStat(
@@ -194,9 +196,9 @@ private fun drawPosterTemplate(
     strings: LumaStrings,
     colors: ShareColors,
 ) {
-    canvas.drawColor(Color.rgb(252, 254, 251))
+    canvas.drawColor(colors.bg)
     val cardRect = RectF(36f, 36f, 1500f, 1064f)
-    drawSoftCard(canvas, cardRect, 34f, Color.rgb(253, 255, 252), withAlpha(colors.primary, 0.55f), 0.12f)
+    drawSoftCard(canvas, cardRect, 34f, colors.surface, withAlpha(colors.primary, 0.55f), 0.12f)
     canvas.save()
     clipRoundRect(canvas, cardRect, 34f)
     drawDottedField(canvas, RectF(54f, 54f, 1482f, 1046f), colors.primary)
@@ -252,12 +254,12 @@ private fun drawZenTemplate(
 ) {
     canvas.drawColor(colors.bg)
     val cardRect = RectF(40f, 73f, 1200f, 1188f)
-    drawSoftCard(canvas, cardRect, 44f, Color.rgb(253, 255, 251), withAlpha(colors.primary, 0.16f), 0.10f)
+    drawSoftCard(canvas, cardRect, 44f, colors.surface, withAlpha(colors.primary, 0.18f), 0.10f)
     canvas.save()
     val clipPath = Path().apply { addRoundRect(cardRect, 44f, 44f, Path.Direction.CW) }
     canvas.clipPath(clipPath)
     drawPaperTexture(canvas, RectF(cardRect.left + 2f, cardRect.top + 2f, cardRect.right - 2f, cardRect.bottom - 2f), colors.primary)
-    drawWatercolorMountains(canvas, cardRect, colors.primary)
+    drawWatercolorMountains(canvas, cardRect, colors)
     drawFloatingLeaves(canvas, colors.primary)
     canvas.restore()
 
@@ -287,7 +289,14 @@ private fun drawZenTemplate(
         align = Paint.Align.CENTER,
     )
 
-    drawSoftCard(canvas, RectF(124f, 464f, 1116f, 572f), 21f, withAlpha(Color.WHITE, 0.82f), withAlpha(colors.primary, 0.13f), 0.0f)
+    drawSoftCard(
+        canvas,
+        RectF(124f, 464f, 1116f, 572f),
+        21f,
+        withAlpha(colors.surface, if (colors.dark) 0.90f else 0.82f),
+        withAlpha(colors.primary, 0.13f),
+        0.0f,
+    )
     drawStatRow(
         canvas = canvas,
         stats = shareStats(entry, strings),
@@ -343,7 +352,7 @@ private fun drawDashboardTemplate(
     strings: LumaStrings,
     colors: ShareColors,
 ) {
-    canvas.drawColor(Color.rgb(247, 250, 252))
+    canvas.drawColor(colors.bg)
     drawSoftCard(canvas, RectF(40f, 40f, 1600f, 1030f), 50f, colors.surface, withAlpha(colors.primary, 0.45f), 0.12f)
 
     drawIconTile(canvas, context, entry.item.iconKey, RectF(88f, 96f, 238f, 246f), 28f, colors)
@@ -424,17 +433,35 @@ private fun drawPosterTitle(
 }
 
 private fun shareColors(primary: Int, darkTheme: Boolean): ShareColors {
-    val tunedPrimary = if (darkTheme) blend(primary, Color.rgb(34, 197, 94), 0.18f) else primary
-    return ShareColors(
-        primary = tunedPrimary,
-        primaryDark = blend(Color.rgb(5, 99, 47), tunedPrimary, 0.42f),
-        bg = Color.rgb(247, 250, 252),
-        surface = Color.rgb(255, 255, 255),
-        text = Color.rgb(16, 25, 36),
-        muted = Color.rgb(91, 105, 124),
-        outline = Color.rgb(218, 226, 232),
-        emptyCell = blend(Color.WHITE, tunedPrimary, 0.11f),
-    )
+    val tunedPrimary = if (darkTheme) blend(primary, Color.WHITE, 0.22f) else primary
+    return if (darkTheme) {
+        val surface = Color.rgb(18, 25, 34)
+        ShareColors(
+            dark = true,
+            primary = tunedPrimary,
+            primaryDark = blend(tunedPrimary, Color.WHITE, 0.26f),
+            bg = Color.rgb(7, 11, 17),
+            surface = surface,
+            text = Color.rgb(237, 244, 242),
+            muted = Color.rgb(154, 168, 181),
+            outline = Color.rgb(47, 60, 72),
+            emptyCell = blend(surface, tunedPrimary, 0.18f),
+            iconTileEnd = Color.rgb(21, 30, 38),
+        )
+    } else {
+        ShareColors(
+            dark = false,
+            primary = tunedPrimary,
+            primaryDark = blend(Color.rgb(5, 99, 47), tunedPrimary, 0.42f),
+            bg = Color.rgb(247, 250, 252),
+            surface = Color.rgb(255, 255, 255),
+            text = Color.rgb(16, 25, 36),
+            muted = Color.rgb(91, 105, 124),
+            outline = Color.rgb(218, 226, 232),
+            emptyCell = blend(Color.WHITE, tunedPrimary, 0.11f),
+            iconTileEnd = Color.rgb(246, 250, 246),
+        )
+    }
 }
 
 private fun drawStatRow(
@@ -466,7 +493,7 @@ private fun drawStatRow(
 }
 
 private fun drawDashboardStatCard(canvas: Canvas, context: Context, rect: RectF, stat: ShareStat, index: Int, colors: ShareColors) {
-    drawSoftCard(canvas, rect, 18f, Color.WHITE, withAlpha(Color.rgb(148, 163, 184), 0.26f), 0.04f)
+    drawSoftCard(canvas, rect, 18f, colors.surface, withAlpha(colors.outline, if (colors.dark) 0.72f else 0.82f), 0.04f)
     val iconCenterX = rect.left + 54f
     val iconCenterY = rect.top + 61f
     drawDashboardStatIcon(canvas, context, iconCenterX, iconCenterY, 46f, index, colors)
@@ -521,7 +548,7 @@ private fun drawHeatmapGrid(
     val left = gridLeft + (gridWidth - contentWidth) / 2f
     val labelPaint = textPaint(if (cellSize < 26f) 18f else 23f, colors.muted, Typeface.BOLD)
     val cellPaint = Paint(Paint.ANTI_ALIAS_FLAG)
-    val empty = if (saturated) blend(Color.WHITE, colors.primary, 0.10f) else colors.emptyCell
+    val empty = if (saturated) blend(colors.surface, colors.primary, if (colors.dark) 0.22f else 0.10f) else colors.emptyCell
 
     if (showMonths) {
         weeks.forEachIndexed { column, week ->
@@ -706,7 +733,14 @@ private fun drawBadgeCards(
     colors: ShareColors,
 ) {
     if (badges.isEmpty()) {
-        drawSoftCard(canvas, RectF(left, top, left + emptyWidth, top + itemHeight), 18f, withAlpha(Color.WHITE, 0.78f), withAlpha(colors.primary, 0.10f), 0.02f)
+        drawSoftCard(
+            canvas,
+            RectF(left, top, left + emptyWidth, top + itemHeight),
+            18f,
+            withAlpha(colors.surface, if (colors.dark) 0.92f else 0.78f),
+            withAlpha(colors.primary, 0.10f),
+            0.02f,
+        )
         drawFittedText(
             canvas = canvas,
             value = strings.t("noEarnedBadges"),
@@ -730,7 +764,14 @@ private fun drawBadgeCards(
             max(titleMeasurePaint.measureText(strings.badgeTitle(badge)), subtitleMeasurePaint.measureText(badgeSubtitle(badge, strings))) +
             horizontalPadding
         val cardWidth = if (adaptiveWidth) measuredWidth.coerceIn(minItemWidth, maxItemWidth) else itemWidth
-        drawSoftCard(canvas, RectF(x, top, x + cardWidth, top + itemHeight), 18f, withAlpha(Color.WHITE, 0.80f), withAlpha(colors.primary, 0.11f), 0.02f)
+        drawSoftCard(
+            canvas,
+            RectF(x, top, x + cardWidth, top + itemHeight),
+            18f,
+            withAlpha(colors.surface, if (colors.dark) 0.94f else 0.80f),
+            withAlpha(colors.primary, 0.11f),
+            0.02f,
+        )
         val iconLeft = x + horizontalPadding
         val iconTop = top + (itemHeight - iconSize) / 2f
         drawBadgeIcon(canvas, badge, iconLeft, iconTop, iconSize, colors)
@@ -849,7 +890,7 @@ private fun drawIconTile(
             rect.centerX(),
             rect.top + rect.height() * 0.22f,
             rect.width() * 0.82f,
-            intArrayOf(withAlpha(colors.primary, 0.15f), withAlpha(colors.primary, 0.06f), Color.rgb(246, 250, 246)),
+            intArrayOf(withAlpha(colors.primary, 0.18f), withAlpha(colors.primary, 0.08f), colors.iconTileEnd),
             floatArrayOf(0f, 0.62f, 1f),
             Shader.TileMode.CLAMP,
         )
@@ -1014,7 +1055,8 @@ private fun drawPaperTexture(canvas: Canvas, rect: RectF, primary: Int) {
     }
 }
 
-private fun drawWatercolorMountains(canvas: Canvas, rect: RectF, primary: Int) {
+private fun drawWatercolorMountains(canvas: Canvas, rect: RectF, colors: ShareColors) {
+    val primary = colors.primary
     val left = rect.left
     val right = rect.right
     val bottom = rect.bottom + 1f
@@ -1062,7 +1104,7 @@ private fun drawWatercolorMountains(canvas: Canvas, rect: RectF, primary: Int) {
     paint.shader = null
 
     val ridgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = withAlpha(Color.rgb(83, 128, 96), 0.11f)
+        color = withAlpha(if (colors.dark) colors.primary else Color.rgb(83, 128, 96), if (colors.dark) 0.16f else 0.11f)
         style = Paint.Style.STROKE
         strokeWidth = 2.4f
         strokeCap = Paint.Cap.ROUND
@@ -1079,7 +1121,7 @@ private fun drawWatercolorMountains(canvas: Canvas, rect: RectF, primary: Int) {
     }
 
     paint.style = Paint.Style.FILL
-    paint.color = withAlpha(Color.WHITE, 0.34f)
+    paint.color = withAlpha(colors.surface, if (colors.dark) 0.42f else 0.34f)
     canvas.drawOval(RectF(left + width * 0.08f, bottom - 176f, right - width * 0.08f, bottom - 106f), paint)
     paint.color = withAlpha(primary, 0.035f)
     canvas.drawOval(RectF(left - width * 0.03f, bottom - 100f, right + width * 0.03f, bottom), paint)
@@ -1121,7 +1163,7 @@ private fun drawLeaf(canvas: Canvas, cx: Float, cy: Float, width: Float, height:
         close()
     }
     canvas.drawPath(path, paint)
-    paint.color = withAlpha(Color.rgb(63, 114, 73), 0.16f)
+    paint.color = withAlpha(color, 0.48f)
     paint.style = Paint.Style.STROKE
     paint.strokeWidth = 1.4f
     canvas.drawLine(cx - width * 0.22f, cy, cx + width * 0.26f, cy, paint)

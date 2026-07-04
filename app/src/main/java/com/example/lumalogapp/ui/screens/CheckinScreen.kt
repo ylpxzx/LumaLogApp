@@ -5,6 +5,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,11 +27,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,8 +45,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.lumalogapp.R
 import com.example.lumalogapp.data.Checkin
 import com.example.lumalogapp.data.DashboardItem
@@ -66,6 +69,8 @@ import com.example.lumalogapp.ui.utils.themeColor
 import java.time.LocalDate
 import kotlin.math.roundToInt
 
+private const val CheckinNoteMaxLength = 200
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CheckinScreen(
@@ -75,14 +80,17 @@ fun CheckinScreen(
     onBack: () -> Unit,
     onOpenMakeup: () -> Unit,
     onSaveShareImage: (DashboardItem, ShareTemplate) -> Unit,
-    onCheckin: () -> Unit,
+    onCheckin: (String) -> Unit,
 ) {
     val entry = remember(data, itemId) { buildDashboardItems(data).firstOrNull { it.item.id == itemId } }
     val itemCheckins = remember(data, itemId) {
         data.checkins.filter { it.itemId == itemId }.sortedByDescending { it.checkinDate }
     }
+    val today = remember { LocalDate.now().toString() }
+    val todayNote = remember(itemCheckins, today) { latestNoteForDate(itemCheckins, today) }
     var achievementsExpanded by remember(itemId) { mutableStateOf(false) }
     var shareEntry by remember(itemId) { mutableStateOf<DashboardItem?>(null) }
+    var checkinNote by remember(itemId, todayNote) { mutableStateOf(todayNote) }
 
     val colorScheme = MaterialTheme.colorScheme
     val isDark = isCheckinDark()
@@ -128,8 +136,12 @@ fun CheckinScreen(
                     CheckinGoalCard(
                         entry = entry,
                         strings = strings,
+                        note = checkinNote,
+                        onNoteChange = { checkinNote = it },
                         onOpenMakeup = onOpenMakeup,
-                        onCheckin = onCheckin,
+                        onCheckin = {
+                            onCheckin(checkinNote)
+                        },
                     )
                 }
 
@@ -160,7 +172,6 @@ fun CheckinScreen(
     shareEntry?.let { currentEntry ->
         ShareTemplatePickerDialog(
             strings = strings,
-            colorTheme = currentEntry.item.colorTheme,
             onDismiss = { shareEntry = null },
             onSelect = { template ->
                 shareEntry = null
@@ -268,106 +279,209 @@ private fun CheckinTopAction(
 @Composable
 private fun ShareTemplatePickerDialog(
     strings: LumaStrings,
-    colorTheme: String,
     onDismiss: () -> Unit,
     onSelect: (ShareTemplate) -> Unit,
 ) {
     val templates = ShareTemplate.entries
-    AlertDialog(
+    var selectedTemplate by remember { mutableStateOf(templates.getOrNull(1) ?: templates.first()) }
+    val colorScheme = MaterialTheme.colorScheme
+    val dark = isCheckinDark()
+    val accent = if (dark) Color(0xFFC084FC) else Color(0xFFA75BFF)
+    val scrim = Color.Black.copy(alpha = if (dark) 0.52f else 0.24f)
+    val panelBackground = if (dark) Color(0xFF11131A) else Color(0xFFFFFBFF)
+    val handleColor = if (dark) Color(0xFF5E6370) else Color(0xFFB7B8C1)
+    val titleColor = if (dark) colorScheme.onSurface else Color(0xFF151827)
+    val subtitleColor = if (dark) colorScheme.onSurfaceVariant else Color(0xFF676D80)
+    val optionBackground = if (dark) Color(0xFF181A23) else Color(0xFFFFFCFF)
+    val cancelColor = if (dark) Color(0xFFADB3C2) else Color(0xFF777B8F)
+    val silentInteraction = remember { MutableInteractionSource() }
+    Dialog(
         onDismissRequest = onDismiss,
-        title = {
-            Text(
-                text = strings.t("shareTemplateTitle"),
-                fontSize = 17.sp,
-                lineHeight = 22.sp,
-                fontWeight = FontWeight.Medium,
-            )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(scrim)
+                .clickable(interactionSource = silentInteraction, indication = null, onClick = onDismiss),
+            contentAlignment = Alignment.BottomCenter,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(383.dp)
+                    .clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                    .background(panelBackground)
+                    .clickable(
+                        interactionSource = silentInteraction,
+                        indication = null,
+                        onClick = {},
+                    )
+                    .padding(horizontal = 14.dp),
+            ) {
+                Spacer(Modifier.height(9.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(35.dp)
+                            .height(4.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(handleColor),
+                    )
+                }
+                Spacer(Modifier.height(14.dp))
+                Text(
+                    text = strings.t("shareTemplateTitle"),
+                    color = titleColor,
+                    fontSize = 20.sp,
+                    lineHeight = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = strings.t("shareTemplateSub"),
+                    color = subtitleColor,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp,
+                    fontWeight = FontWeight.Normal,
+                )
+                Spacer(Modifier.height(14.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     templates.take(2).forEach { template ->
                         ShareTemplateOption(
                             template = template,
                             label = strings.shareTemplateName(template),
-                            colorTheme = colorTheme,
+                            accent = accent,
+                            background = optionBackground,
+                            contentColor = titleColor,
+                            selected = selectedTemplate == template,
                             modifier = Modifier.weight(1f),
-                            onClick = { onSelect(template) },
+                            onClick = { selectedTemplate = template },
                         )
                     }
                 }
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Spacer(Modifier.height(10.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     templates.drop(2).forEach { template ->
                         ShareTemplateOption(
                             template = template,
                             label = strings.shareTemplateName(template),
-                            colorTheme = colorTheme,
+                            accent = accent,
+                            background = optionBackground,
+                            contentColor = titleColor,
+                            selected = selectedTemplate == template,
                             modifier = Modifier.weight(1f),
-                            onClick = { onSelect(template) },
+                            onClick = { selectedTemplate = template },
                         )
                     }
                 }
+                Spacer(Modifier.height(18.dp))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ShareTemplateDialogAction(
+                        text = strings.t("cancel"),
+                        color = cancelColor,
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f),
+                    )
+                    ShareTemplateDialogAction(
+                        text = strings.t("confirm"),
+                        color = accent,
+                        onClick = { onSelect(selectedTemplate) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text(strings.t("cancel"))
-            }
-        },
-    )
+        }
+    }
 }
 
 @Composable
 private fun ShareTemplateOption(
     template: ShareTemplate,
     label: String,
-    colorTheme: String,
+    accent: Color,
+    background: Color,
+    contentColor: Color,
+    selected: Boolean,
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
-    val colorScheme = MaterialTheme.colorScheme
-    val accent = themeColor(colorTheme)
-    val optionShape = RoundedCornerShape(14.dp)
-    val optionBorder = accent.copy(alpha = if (isCheckinDark()) 0.42f else 0.46f)
+    val optionShape = RoundedCornerShape(12.dp)
+    val borderWidth = if (selected) 2.dp else 1.dp
+    val optionBorder = accent.copy(alpha = if (selected) 0.92f else 0.72f)
     Column(
         modifier = modifier
+            .height(109.dp)
             .clip(optionShape)
-            .background(colorScheme.surfaceVariant.copy(alpha = if (isCheckinDark()) 0.28f else 0.42f))
-            .border(1.dp, optionBorder, optionShape)
+            .background(background)
+            .border(borderWidth, optionBorder, optionShape)
             .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.spacedBy(9.dp),
+            .padding(start = 8.dp, top = 7.dp, end = 8.dp, bottom = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        ShareTemplatePreview(template = template, accent = accent)
+        ShareTemplatePreview(
+            template = template,
+            accent = accent,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(63.dp),
+        )
+        Spacer(Modifier.height(7.dp))
         Text(
             text = label,
-            color = colorScheme.onSurface,
-            fontSize = 12.sp,
-            lineHeight = 15.sp,
-            fontWeight = FontWeight.Medium,
+            color = contentColor,
+            fontSize = 11.sp,
+            lineHeight = 14.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun ShareTemplateDialogAction(
+    text: String,
+    color: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .height(52.dp)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = text,
+            color = color,
+            fontSize = 15.sp,
+            lineHeight = 20.sp,
+            fontWeight = FontWeight.Bold,
             maxLines = 1,
         )
     }
 }
 
 @Composable
-private fun ShareTemplatePreview(template: ShareTemplate, accent: Color) {
-    val border = accent.copy(alpha = 0.58f)
-    val shape = RoundedCornerShape(if (template == ShareTemplate.Zen) 16.dp else 12.dp)
-    val ratio = when (template) {
-        ShareTemplate.Classic -> 1.35f
-        ShareTemplate.Poster -> 1.38f
-        ShareTemplate.Zen -> 1f
-        ShareTemplate.Dashboard -> 1.52f
-    }
+private fun ShareTemplatePreview(
+    template: ShareTemplate,
+    accent: Color,
+    modifier: Modifier = Modifier,
+) {
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(ratio)
-            .clip(shape)
-            .background(if (template == ShareTemplate.Zen) Color(0xFFF7FAF5) else Color.White)
-            .border(1.dp, border, shape)
-            .padding(horizontal = 10.dp, vertical = 9.dp),
+        modifier = modifier,
     ) {
         when (template) {
             ShareTemplate.Classic -> ClassicTemplatePreview(accent)
@@ -380,87 +494,109 @@ private fun ShareTemplatePreview(template: ShareTemplate, accent: Color) {
 
 @Composable
 private fun ClassicTemplatePreview(accent: Color) {
-    Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(20.dp).clip(RoundedCornerShape(6.dp)).background(accent.copy(alpha = 0.12f)))
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Box(Modifier.width(46.dp).height(6.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFF172033)))
-                Box(Modifier.width(36.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(accent.copy(alpha = 0.75f)))
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.Top) {
+            PreviewSoftSquare(accent, 14.dp)
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.padding(top = 2.dp)) {
+                PreviewLine(width = 49.dp, height = 4.dp, color = accent)
+                PreviewLine(width = 16.dp, height = 3.dp, color = accent.copy(alpha = 0.48f))
             }
         }
-        PreviewStatLine(accent, columns = 4)
-        PreviewHeatmap(accent, rows = 5, columns = 10, compact = true)
-        PreviewBadgeLine(accent)
+        PreviewMiniHeatmap(accent, rows = 4, columns = 16)
+        PreviewFooterLines(accent)
     }
 }
 
 @Composable
 private fun PosterTemplatePreview(accent: Color) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
-            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Box(Modifier.width(56.dp).height(10.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFF0B1C1B)))
-                Box(Modifier.width(42.dp).height(5.dp).clip(RoundedCornerShape(2.dp)).background(accent.copy(alpha = 0.72f)))
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.Top) {
+                PreviewSoftSquare(accent, 14.dp)
+                PreviewLine(width = 56.dp, height = 5.dp, color = accent, modifier = Modifier.padding(top = 2.dp))
             }
-            PreviewStatLine(accent, columns = 3, modifier = Modifier.width(54.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
+                repeat(3) {
+                    PreviewLine(width = 9.dp, height = 3.dp, color = accent.copy(alpha = 0.52f))
+                }
+            }
         }
-        PreviewHeatmap(accent, rows = 5, columns = 12, compact = false)
-        PreviewBadgeLine(accent)
+        PreviewMiniHeatmap(accent, rows = 4, columns = 18)
+        PreviewFooterLines(accent)
     }
 }
 
 @Composable
 private fun ZenTemplatePreview(accent: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-        Box(Modifier.size(24.dp).clip(CircleShape).background(accent.copy(alpha = 0.10f)))
-        Box(Modifier.width(54.dp).height(8.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFF111A22)))
-        PreviewStatLine(accent, columns = 4, modifier = Modifier.fillMaxWidth(0.86f))
-        PreviewHeatmap(accent, rows = 5, columns = 10, compact = true)
-        PreviewBadgeLine(accent)
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        PreviewSoftSquare(accent, 12.dp)
+        PreviewLine(width = 62.dp, height = 4.dp, color = accent)
+        PreviewMiniHeatmap(accent, rows = 5, columns = 18)
+        PreviewFooterLines(accent)
     }
 }
 
 @Composable
 private fun DashboardTemplatePreview(accent: Color) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(18.dp).clip(RoundedCornerShape(6.dp)).background(accent.copy(alpha = 0.12f)))
-                Box(Modifier.width(42.dp).height(8.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFF172033)))
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Row(horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.Top) {
+                PreviewSoftSquare(accent, 14.dp)
+                PreviewLine(width = 38.dp, height = 5.dp, color = accent, modifier = Modifier.padding(top = 2.dp))
             }
-            PreviewStatLine(accent, columns = 3, modifier = Modifier.width(58.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                repeat(4) {
+                    Box(
+                        modifier = Modifier
+                            .width(19.dp)
+                            .height(14.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(accent.copy(alpha = 0.10f))
+                            .border(1.dp, accent.copy(alpha = 0.18f), RoundedCornerShape(4.dp)),
+                    )
+                }
+            }
         }
-        PreviewHeatmap(accent, rows = 5, columns = 13, compact = false)
-        Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFE2E8F0)))
-        PreviewBadgeLine(accent)
+        PreviewMiniHeatmap(accent, rows = 4, columns = 14)
+        PreviewFooterLines(accent)
     }
 }
 
 @Composable
-private fun PreviewStatLine(accent: Color, columns: Int, modifier: Modifier = Modifier.fillMaxWidth()) {
-    Row(modifier = modifier, horizontalArrangement = Arrangement.SpaceEvenly) {
-        repeat(columns) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Box(Modifier.width(12.dp).height(5.dp).clip(RoundedCornerShape(2.dp)).background(accent))
-                Box(Modifier.width(16.dp).height(3.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFFCBD5E1)))
-            }
-        }
-    }
+private fun PreviewSoftSquare(accent: Color, size: Dp, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(RoundedCornerShape(4.dp))
+            .background(accent.copy(alpha = 0.10f))
+            .border(1.dp, accent.copy(alpha = 0.20f), RoundedCornerShape(4.dp)),
+    )
 }
 
 @Composable
-private fun PreviewHeatmap(accent: Color, rows: Int, columns: Int, compact: Boolean) {
-    Column(verticalArrangement = Arrangement.spacedBy(if (compact) 2.dp else 3.dp)) {
+private fun PreviewLine(width: Dp, height: Dp, color: Color, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .width(width)
+            .height(height)
+            .clip(RoundedCornerShape(2.dp))
+            .background(color),
+    )
+}
+
+@Composable
+private fun PreviewMiniHeatmap(accent: Color, rows: Int, columns: Int) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         repeat(rows) { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(if (compact) 2.dp else 3.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                 repeat(columns) { column ->
-                    val lit = (row + column) % 3 == 0 || (row * column) % 7 == 0
+                    val strong = (row + column) % 3 == 0 || (row * column) % 7 == 0
                     Box(
                         modifier = Modifier
                             .weight(1f)
                             .aspectRatio(1f)
-                            .clip(RoundedCornerShape(if (compact) 2.dp else 3.dp))
-                            .background(if (lit) accent.copy(alpha = 0.78f) else accent.copy(alpha = 0.10f)),
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(if (strong) accent.copy(alpha = 0.74f) else accent.copy(alpha = 0.30f)),
                     )
                 }
             }
@@ -469,13 +605,10 @@ private fun PreviewHeatmap(accent: Color, rows: Int, columns: Int, compact: Bool
 }
 
 @Composable
-private fun PreviewBadgeLine(accent: Color) {
+private fun PreviewFooterLines(accent: Color) {
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
         repeat(3) {
-            Row(horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(11.dp).clip(CircleShape).background(accent.copy(alpha = 0.72f)))
-                Box(Modifier.width(22.dp).height(4.dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFFCBD5E1)))
-            }
+            PreviewLine(width = 24.dp, height = 3.dp, color = accent.copy(alpha = 0.16f))
         }
     }
 }
@@ -558,6 +691,8 @@ private fun HabitIconTile(entry: DashboardItem) {
 private fun CheckinGoalCard(
     entry: DashboardItem,
     strings: LumaStrings,
+    note: String,
+    onNoteChange: (String) -> Unit,
     onOpenMakeup: () -> Unit,
     onCheckin: () -> Unit,
 ) {
@@ -566,6 +701,7 @@ private fun CheckinGoalCard(
     val enabled = canCheckIn(entry.status)
     val target = entry.item.dailyTargetCount.coerceAtLeast(1)
     val count = entry.todayCount.coerceIn(0, target)
+    val showNoteInput = count < target
     val segmentCount = target.coerceIn(1, 5)
     val progressUnits = (count.toFloat() / target.toFloat()).coerceIn(0f, 1f) * segmentCount
     val inactiveSegment = if (isCheckinDark()) {
@@ -623,6 +759,20 @@ private fun CheckinGoalCard(
         }
 
         Spacer(Modifier.height(12.dp))
+
+        if (showNoteInput) {
+            OutlinedTextField(
+                value = note,
+                onValueChange = { onNoteChange(it.take(CheckinNoteMaxLength)) },
+                label = { Text(strings.t("checkinNote")) },
+                placeholder = { Text(strings.t("checkinNotePlaceholder")) },
+                minLines = 2,
+                maxLines = 3,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(12.dp))
+        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -863,7 +1013,19 @@ private fun CheckinHeatmapCard(entry: DashboardItem, checkins: List<Checkin>, st
                 hasNormal -> strings.t("normalCheckin")
                 else -> null
             }
-            day.date to sourceLabel?.let { "${strings.heatmapDayLabel(day)} / $it" }.orEmpty()
+            val note = latestNote(records)
+            val parts = buildList {
+                sourceLabel?.let { add("${strings.heatmapDayLabel(day)} / $it") }
+                if (note.isNotEmpty()) {
+                    add(
+                        strings.t(
+                            "checkinNoteDetail",
+                            "note" to note,
+                        ),
+                    )
+                }
+            }
+            day.date to parts.joinToString("\n")
         }.filterValues { it.isNotBlank() }
     }
     CheckinCard(contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp)) {
@@ -1091,6 +1253,15 @@ private fun iconDrawableFor(key: String): Int {
     val normalized = normalizeLumaIconKey(key)
     return lumaIconOptions.firstOrNull { it.key == normalized }?.drawableRes ?: lumaIconOptions.first().drawableRes
 }
+
+private fun latestNoteForDate(checkins: List<Checkin>, date: String): String =
+    latestNote(checkins.filter { it.checkinDate == date })
+
+private fun latestNote(checkins: List<Checkin>): String =
+    checkins
+        .sortedByDescending { it.id }
+        .firstNotNullOfOrNull { checkin -> checkin.note.trim().takeIf { it.isNotEmpty() } }
+        .orEmpty()
 
 @Composable
 private fun isCheckinDark(): Boolean =
