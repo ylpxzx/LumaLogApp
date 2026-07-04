@@ -17,6 +17,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.core.content.ContextCompat
+import com.example.lumalogapp.R
 import com.example.lumalogapp.data.Badge
 import com.example.lumalogapp.data.DashboardItem
 import com.example.lumalogapp.data.HeatmapDay
@@ -357,7 +358,7 @@ private fun drawDashboardTemplate(
         RectF(1376f, 103f, 1562f, 226f),
     )
     cards.forEachIndexed { index, rect ->
-        drawDashboardStatCard(canvas, rect, stats[index], index, colors)
+        drawDashboardStatCard(canvas, context, rect, stats[index], index, colors)
     }
 
     drawHeatmapGrid(
@@ -464,69 +465,33 @@ private fun drawStatRow(
     }
 }
 
-private fun drawDashboardStatCard(canvas: Canvas, rect: RectF, stat: ShareStat, index: Int, colors: ShareColors) {
+private fun drawDashboardStatCard(canvas: Canvas, context: Context, rect: RectF, stat: ShareStat, index: Int, colors: ShareColors) {
     drawSoftCard(canvas, rect, 18f, Color.WHITE, withAlpha(Color.rgb(148, 163, 184), 0.26f), 0.04f)
     val iconCenterX = rect.left + 54f
     val iconCenterY = rect.top + 61f
-    drawDashboardStatIcon(canvas, iconCenterX, iconCenterY, 27f, index, colors)
+    drawDashboardStatIcon(canvas, context, iconCenterX, iconCenterY, 46f, index, colors)
     drawFittedText(canvas, stat.value, rect.left + 124f, rect.top + 64f, 90f, 40f, 28f, colors.primaryDark, Typeface.BOLD, Paint.Align.CENTER)
     drawFittedText(canvas, stat.label, rect.left + 124f, rect.top + 95f, 105f, 19f, 15f, colors.muted, Typeface.BOLD, Paint.Align.CENTER)
 }
 
-private fun drawDashboardStatIcon(canvas: Canvas, cx: Float, cy: Float, radius: Float, index: Int, colors: ShareColors) {
-    val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    when (index) {
-        0 -> {
-            paint.color = colors.primary
-            canvas.drawCircle(cx, cy, radius, paint)
-            paint.color = Color.WHITE
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = 6f
-            paint.strokeCap = Paint.Cap.ROUND
-            val path = Path().apply {
-                moveTo(cx - 12f, cy)
-                lineTo(cx - 3f, cy + 9f)
-                lineTo(cx + 15f, cy - 12f)
-            }
-            canvas.drawPath(path, paint)
-            paint.style = Paint.Style.FILL
-        }
-        1 -> {
-            paint.color = withAlpha(colors.primary, 0.14f)
-            canvas.drawCircle(cx, cy, radius, paint)
-            paint.color = colors.primary
-            val path = Path().apply {
-                moveTo(cx - 21f, cy + 16f)
-                lineTo(cx - 3f, cy - 14f)
-                lineTo(cx + 22f, cy + 16f)
-                close()
-            }
-            canvas.drawPath(path, paint)
-            paint.color = withAlpha(Color.WHITE, 0.65f)
-            canvas.drawCircle(cx - 4f, cy - 1f, 7f, paint)
-        }
-        2 -> {
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = 8f
-            paint.strokeCap = Paint.Cap.BUTT
-            paint.color = withAlpha(colors.primary, 0.22f)
-            canvas.drawCircle(cx, cy, radius - 3f, paint)
-            paint.color = colors.primary
-            canvas.drawArc(RectF(cx - radius + 3f, cy - radius + 3f, cx + radius - 3f, cy + radius - 3f), -90f, 270f, false, paint)
-            paint.style = Paint.Style.FILL
-        }
-        else -> {
-            paint.shader = LinearGradient(cx, cy - radius, cx, cy + radius, colors.primary, colors.primaryDark, Shader.TileMode.CLAMP)
-            val path = Path().apply {
-                moveTo(cx, cy - 28f)
-                cubicTo(cx + 23f, cy - 8f, cx + 23f, cy + 19f, cx, cy + 27f)
-                cubicTo(cx - 28f, cy + 16f, cx - 16f, cy - 9f, cx - 6f, cy - 22f)
-                cubicTo(cx - 4f, cy - 11f, cx - 1f, cy - 7f, cx, cy - 28f)
-            }
-            canvas.drawPath(path, paint)
-            paint.shader = null
-        }
-    }
+private fun drawDashboardStatIcon(canvas: Canvas, context: Context, cx: Float, cy: Float, size: Float, index: Int, colors: ShareColors) {
+    val drawable = ContextCompat.getDrawable(context, dashboardStatIconRes(index))?.mutate() ?: return
+    val halfSize = size / 2f
+    drawable.setTint(colors.primary)
+    drawable.setBounds(
+        (cx - halfSize).roundToInt(),
+        (cy - halfSize).roundToInt(),
+        (cx + halfSize).roundToInt(),
+        (cy + halfSize).roundToInt(),
+    )
+    drawable.draw(canvas)
+}
+
+private fun dashboardStatIconRes(index: Int): Int = when (index) {
+    0 -> R.drawable.ic_stat_flame
+    1 -> R.drawable.ic_stat_rise
+    2 -> R.drawable.ic_stat_progress
+    else -> R.drawable.ic_stat_star
 }
 
 private fun drawHeatmapGrid(

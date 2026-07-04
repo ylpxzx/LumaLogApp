@@ -327,11 +327,13 @@ private fun ShareTemplateOption(
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val accent = themeColor(colorTheme)
+    val optionShape = RoundedCornerShape(14.dp)
+    val optionBorder = accent.copy(alpha = if (isCheckinDark()) 0.42f else 0.46f)
     Column(
         modifier = modifier
-            .clip(RoundedCornerShape(14.dp))
+            .clip(optionShape)
             .background(colorScheme.surfaceVariant.copy(alpha = if (isCheckinDark()) 0.28f else 0.42f))
-            .border(1.dp, colorScheme.outline.copy(alpha = if (isCheckinDark()) 0.20f else 0.16f), RoundedCornerShape(14.dp))
+            .border(1.dp, optionBorder, optionShape)
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(9.dp),
@@ -350,7 +352,7 @@ private fun ShareTemplateOption(
 
 @Composable
 private fun ShareTemplatePreview(template: ShareTemplate, accent: Color) {
-    val border = accent.copy(alpha = if (template == ShareTemplate.Poster) 0.58f else 0.18f)
+    val border = accent.copy(alpha = 0.58f)
     val shape = RoundedCornerShape(if (template == ShareTemplate.Zen) 16.dp else 12.dp)
     val ratio = when (template) {
         ShareTemplate.Classic -> 1.35f
