@@ -4,6 +4,7 @@ import com.example.lumalogapp.data.Badge
 import com.example.lumalogapp.data.CheckinStatus
 import com.example.lumalogapp.data.HeatmapDay
 import com.example.lumalogapp.data.LanguagePreference
+import com.example.lumalogapp.ui.share.ShareTemplate
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -19,6 +20,8 @@ class LumaStrings(private val language: LanguagePreference) {
     }
 
     fun badgeTitle(badge: Badge): String = t("badge_${badge.id}_title").takeUnless { it == "badge_${badge.id}_title" } ?: badge.title
+
+    fun shareTemplateName(template: ShareTemplate): String = t("shareTemplate${template.number}")
 
     fun monthLabel(date: LocalDate): String {
         val month = date.monthValue
@@ -124,6 +127,7 @@ private val zh = mapOf(
     "backHome" to "返回首页",
     "backCheckin" to "返回签到",
     "checkin" to "签到",
+    "checkinAction" to "签到",
     "share" to "生成分享图",
     "brandTagline" to "习惯热力图",
     "settingsLocalAutoSave" to "本地数据 · 自动保存",
@@ -164,6 +168,8 @@ private val zh = mapOf(
     "dateRangeInvalid" to "结束日期不能早于开始日期",
     "unlimited" to "不限结束日期",
     "dailyTarget" to "每日目标次数",
+    "todayGoal" to "今日目标",
+    "completedLabel" to "已完成",
     "validTime" to "有效时间",
     "allDay" to "全天",
     "timeRange" to "指定时间段",
@@ -209,6 +215,8 @@ private val zh = mapOf(
     "earnedBadges" to "已获得徽章",
     "settingsBadgeCount" to "{count} 枚已获得",
     "achievements" to "成就",
+    "earnedAchievements" to "已获得成就",
+    "achievementCount" to "{count} 个成就",
     "noAchievements" to "还没有获得成就",
     "noEarnedBadges" to "还没有获得徽章",
     "archivedItems" to "归档习惯",
@@ -222,6 +230,11 @@ private val zh = mapOf(
     "shareImage" to "生成分享图",
     "shareImageSaved" to "图片已保存到相册",
     "shareImageSaveFailed" to "图片保存失败",
+    "shareTemplateTitle" to "选择分享图模板",
+    "shareTemplate1" to "模板 1 · 标准白卡",
+    "shareTemplate2" to "模板 2 · 海报热力",
+    "shareTemplate3" to "模板 3 · 水墨方卡",
+    "shareTemplate4" to "模板 4 · 数据仪表盘",
     "confirmMakeup" to "确认补签",
     "makeupConfirmed" to "已确认补签 {count} 天",
     "makeupUnlimited" to "补签不限次数",
@@ -237,10 +250,12 @@ private val zh = mapOf(
     "checkinRecords" to "签到记录",
     "noCheckinRecords" to "暂无签到记录",
     "makeupCheckin" to "补签",
-    "normalCheckin" to "正常签到",
+    "normalCheckin" to "签到",
     "itemMissing" to "习惯不存在",
     "allDayCheckin" to "全天可签到",
     "checkinHeatmap" to "习惯热力图",
+    "heatmapLess" to "少",
+    "heatmapMore" to "多",
     "heatmapOnce" to "1次",
     "heatmapTwoThree" to "2-3次",
     "heatmapFourSix" to "4-6次",
@@ -289,6 +304,7 @@ private val en = mapOf(
     "backHome" to "Home",
     "backCheckin" to "Back to check-in",
     "checkin" to "Check-in",
+    "checkinAction" to "Check in",
     "share" to "Share",
     "brandTagline" to "Habit heatmap",
     "settingsLocalAutoSave" to "Local data · autosaved",
@@ -329,6 +345,8 @@ private val en = mapOf(
     "dateRangeInvalid" to "End date cannot be earlier than start date",
     "unlimited" to "No end date",
     "dailyTarget" to "Daily target",
+    "todayGoal" to "Today goal",
+    "completedLabel" to "completed",
     "validTime" to "Valid time",
     "allDay" to "All day",
     "timeRange" to "Time range",
@@ -375,6 +393,8 @@ private val en = mapOf(
     "earnedBadges" to "Earned badges",
     "settingsBadgeCount" to "{count} earned",
     "achievements" to "Achievements",
+    "earnedAchievements" to "Earned achievements",
+    "achievementCount" to "{count} achievements",
     "noAchievements" to "No achievements yet",
     "noEarnedBadges" to "No badges earned yet",
     "archivedItems" to "Archived habits",
@@ -388,6 +408,11 @@ private val en = mapOf(
     "shareImage" to "Save image",
     "shareImageSaved" to "Image saved to gallery",
     "shareImageSaveFailed" to "Failed to save image",
+    "shareTemplateTitle" to "Choose a share template",
+    "shareTemplate1" to "Template 1 · Classic",
+    "shareTemplate2" to "Template 2 · Poster",
+    "shareTemplate3" to "Template 3 · Zen square",
+    "shareTemplate4" to "Template 4 · Dashboard",
     "confirmMakeup" to "Confirm makeup",
     "makeupConfirmed" to "Confirmed {count} makeup day(s)",
     "makeupUnlimited" to "Unlimited makeup check-ins",
@@ -407,6 +432,8 @@ private val en = mapOf(
     "itemMissing" to "Habit not found",
     "allDayCheckin" to "Available all day",
     "checkinHeatmap" to "Habit heatmap",
+    "heatmapLess" to "Less",
+    "heatmapMore" to "More",
     "heatmapOnce" to "1x",
     "heatmapTwoThree" to "2-3x",
     "heatmapFourSix" to "4-6x",

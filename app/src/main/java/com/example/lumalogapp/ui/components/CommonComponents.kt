@@ -2,6 +2,7 @@ package com.example.lumalogapp.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,18 +29,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.lumalogapp.R
 import com.example.lumalogapp.data.Badge
 import com.example.lumalogapp.ui.i18n.LumaStrings
 import com.example.lumalogapp.ui.utils.colorThemes
@@ -269,13 +274,32 @@ fun RoundIconButton(onClick: () -> Unit, content: @Composable () -> Unit) {
 }
 
 @Composable
-fun AchievementBadge(badge: Badge, modifier: Modifier = Modifier, strings: LumaStrings? = null) {
+fun FoldIndicator(
+    expanded: Boolean,
+    modifier: Modifier = Modifier.size(16.dp),
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+) {
+    Image(
+        painter = painterResource(R.drawable.ic_fold),
+        contentDescription = null,
+        colorFilter = ColorFilter.tint(color),
+        modifier = modifier.rotate(if (expanded) -90f else 90f),
+    )
+}
+
+@Composable
+fun AchievementBadge(
+    badge: Badge,
+    modifier: Modifier = Modifier,
+    strings: LumaStrings? = null,
+    accentColor: Color? = null,
+) {
     Column(
         modifier = modifier.width(76.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(5.dp),
     ) {
-        BadgeIcon(badge = badge, modifier = Modifier.size(54.dp))
+        BadgeIcon(badge = badge, accentColor = accentColor, modifier = Modifier.size(54.dp))
         Text(
             text = strings?.badgeTitle(badge) ?: badge.title,
             color = MaterialTheme.colorScheme.onSurface,
@@ -288,13 +312,15 @@ fun AchievementBadge(badge: Badge, modifier: Modifier = Modifier, strings: LumaS
 }
 
 @Composable
-private fun BadgeIcon(badge: Badge, modifier: Modifier = Modifier) {
-    val accent = when (badge.level) {
+private fun BadgeIcon(badge: Badge, accentColor: Color? = null, modifier: Modifier = Modifier) {
+    val levelAccent = when (badge.level) {
         "gold" -> Color(0xFFFACC15)
         "silver" -> Color(0xFFCBD5E1)
         else -> Color(0xFFD99A5B)
     }
-    val green = Color(0xFF22C55E)
+    val accent = accentColor ?: levelAccent
+    val secondary = accentColor?.copy(alpha = 0.62f) ?: Color(0xFF22C55E)
+    val tertiary = accentColor?.copy(alpha = 0.36f) ?: Color(0xFF84CC16)
     Canvas(modifier = modifier) {
         drawRoundRect(
             brush = Brush.linearGradient(listOf(Color(0xFF172033), Color(0xFF101827))),
@@ -320,7 +346,7 @@ private fun BadgeIcon(badge: Badge, modifier: Modifier = Modifier) {
                 )
                 repeat(5) { index ->
                     drawCircle(
-                        color = if (index % 2 == 0) green else accent,
+                        color = if (index % 2 == 0) secondary else accent,
                         radius = 3.dp.toPx(),
                         center = androidx.compose.ui.geometry.Offset(size.width * (0.22f + index * 0.14f), size.height * (0.68f - index.coerceAtMost(2) * 0.08f)),
                     )
@@ -328,13 +354,13 @@ private fun BadgeIcon(badge: Badge, modifier: Modifier = Modifier) {
             }
             "month_streak", "thirty_day_runner" -> {
                 drawCircle(color = accent, radius = size.width * 0.27f, center = center, style = Stroke(width = 4.dp.toPx()))
-                drawCircle(color = green, radius = size.width * 0.16f, center = center, style = Stroke(width = 2.dp.toPx()))
+                drawCircle(color = secondary, radius = size.width * 0.16f, center = center, style = Stroke(width = 2.dp.toPx()))
             }
             "hundred_lights", "hundred_total_lights", "three_habits_lit" -> {
                 repeat(3) { x ->
                     repeat(3) { y ->
                         drawRoundRect(
-                            color = listOf(green, accent, Color(0xFF84CC16))[(x + y) % 3],
+                            color = listOf(secondary, accent, tertiary)[(x + y) % 3],
                             topLeft = androidx.compose.ui.geometry.Offset(15.dp.toPx() + x * 10.dp.toPx(), 15.dp.toPx() + y * 10.dp.toPx()),
                             size = androidx.compose.ui.geometry.Size(7.dp.toPx(), 7.dp.toPx()),
                             cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx()),
@@ -349,11 +375,11 @@ private fun BadgeIcon(badge: Badge, modifier: Modifier = Modifier) {
                     cubicTo(size.width * 0.70f, size.height * 0.92f, size.width * 0.84f, size.height * 0.92f, size.width * 0.92f, size.height * 0.58f)
                 }
                 drawPath(path = path, color = accent, style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round))
-                drawPath(path = path, color = green, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
+                drawPath(path = path, color = secondary, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
             }
             else -> {
                 drawCircle(color = accent, radius = size.width * 0.26f, center = center, style = Stroke(width = 4.dp.toPx()))
-                drawCircle(color = green, radius = size.width * 0.14f, center = center)
+                drawCircle(color = secondary, radius = size.width * 0.14f, center = center)
             }
         }
     }

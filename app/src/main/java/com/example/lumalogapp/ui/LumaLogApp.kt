@@ -121,7 +121,7 @@ fun LumaLogRoot() {
                     strings = strings,
                     onBack = ::navigateBack,
                     onOpenMakeup = { screen = Screen.Makeup(current.itemId) },
-                    onSaveShareImage = { entry -> saveHabitImage(context, entry, strings, darkTheme) },
+                    onSaveShareImage = { entry, template -> saveHabitImage(context, entry, strings, darkTheme, template) },
                     onCheckin = {
                         updateData(store.checkIn(data, current.itemId))
                         message = strings.t("checked")

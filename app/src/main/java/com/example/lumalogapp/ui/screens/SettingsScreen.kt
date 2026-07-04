@@ -60,6 +60,7 @@ import com.example.lumalogapp.data.LumaData
 import com.example.lumalogapp.data.ThemePreference
 import com.example.lumalogapp.data.userBadges
 import com.example.lumalogapp.ui.components.AchievementBadge
+import com.example.lumalogapp.ui.components.FoldIndicator
 import com.example.lumalogapp.ui.i18n.LumaStrings
 import com.example.lumalogapp.ui.utils.colorThemes
 import com.example.lumalogapp.ui.utils.themeColor
@@ -511,14 +512,16 @@ private fun SettingsPanel(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Text(
-                text = if (expanded) "⌃" else "⌄",
-                color = colorScheme.onSurfaceVariant,
-                fontSize = 16.sp,
-                lineHeight = 16.sp,
-                textAlign = TextAlign.Center,
+            Box(
                 modifier = Modifier.width(18.dp),
-            )
+                contentAlignment = Alignment.Center,
+            ) {
+                FoldIndicator(
+                    expanded = expanded,
+                    color = colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(14.dp),
+                )
+            }
         }
         if (expanded) {
             SettingsDivider(modifier = Modifier.padding(top = 8.dp, bottom = 9.dp))

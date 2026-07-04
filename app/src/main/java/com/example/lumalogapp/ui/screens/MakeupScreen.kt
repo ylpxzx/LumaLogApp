@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -47,6 +48,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.lumalogapp.R
 import com.example.lumalogapp.data.Item
 import com.example.lumalogapp.data.LumaData
 import com.example.lumalogapp.data.makeupCandidateDates
@@ -83,10 +85,11 @@ fun MakeupScreen(
             )
         },
         bottomBar = {
-            if (item != null) {
+            item?.let { currentItem ->
                 MakeupBottomBar(
                     enabled = selectedDates.isNotEmpty(),
                     label = strings.t("confirmMakeup"),
+                    colorTheme = currentItem.colorTheme,
                     onClick = { onConfirm(selectedDates.sorted()) },
                 )
             }
@@ -171,7 +174,7 @@ fun MakeupScreen(
                 )
             }
             item {
-                MakeupSelectedCard(selectedDates = selectedDates, strings = strings)
+                MakeupSelectedCard(selectedDates = selectedDates, colorTheme = currentItem.colorTheme, strings = strings)
             }
         }
     }
@@ -212,22 +215,6 @@ private fun MakeupTopBar(
                 .clickable(onClick = onBack)
                 .padding(horizontal = 5.dp, vertical = 3.dp),
         )
-        Box(
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .size(28.dp)
-                .clip(CircleShape)
-                .border(1.4.dp, colorScheme.onSurfaceVariant.copy(alpha = 0.72f), CircleShape),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "?",
-                color = colorScheme.onSurfaceVariant,
-                fontSize = 16.sp,
-                lineHeight = 16.sp,
-                fontWeight = FontWeight.Medium,
-            )
-        }
     }
 }
 
@@ -240,7 +227,7 @@ private fun MakeupHabitCard(
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val accent = themeColor(item.colorTheme)
-    MakeupCard(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp)) {
+    MakeupCard(accent = accent, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -263,27 +250,37 @@ private fun MakeupHabitCard(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(7.dp),
             ) {
-                Text(
-                    text = item.name,
-                    color = colorScheme.onSurface,
-                    fontSize = 21.sp,
-                    lineHeight = 25.sp,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = categoryName,
-                    color = accent,
-                    fontSize = 12.sp,
-                    lineHeight = 15.sp,
-                    fontWeight = FontWeight.Medium,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(9.dp))
-                        .background(accent.copy(alpha = if (isMakeupDark()) 0.18f else 0.10f))
-                        .border(1.dp, accent.copy(alpha = if (isMakeupDark()) 0.26f else 0.15f), RoundedCornerShape(9.dp))
-                        .padding(horizontal = 8.dp, vertical = 3.dp),
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(
+                        text = item.name,
+                        color = colorScheme.onSurface,
+                        fontSize = 21.sp,
+                        lineHeight = 25.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        text = categoryName,
+                        color = accent,
+                        fontSize = 12.sp,
+                        lineHeight = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier
+                            .widthIn(max = 104.dp)
+                            .clip(RoundedCornerShape(9.dp))
+                            .background(accent.copy(alpha = if (isMakeupDark()) 0.18f else 0.10f))
+                            .border(1.dp, accent.copy(alpha = if (isMakeupDark()) 0.26f else 0.15f), RoundedCornerShape(9.dp))
+                            .padding(horizontal = 8.dp, vertical = 3.dp),
+                    )
+                }
                 Text(
                     text = if (item.makeupMonthlyLimit <= 0) {
                         strings.t("makeupUnlimitedShort")
@@ -315,36 +312,19 @@ private fun MakeupCalendarCard(
     val colorScheme = MaterialTheme.colorScheme
     val accent = themeColor(item.colorTheme)
     val cells = remember(month) { makeupCalendarCells(month) }
-    MakeupCard(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp)) {
-        Box(
+    MakeupCard(accent = accent, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp)) {
+        Text(
+            text = strings.fullMonthLabel(month),
+            color = colorScheme.onSurface,
+            fontSize = 21.sp,
+            lineHeight = 25.sp,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 14.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = "‹",
-                color = colorScheme.onSurfaceVariant,
-                fontSize = 31.sp,
-                lineHeight = 31.sp,
-                modifier = Modifier.align(Alignment.CenterStart),
-            )
-            Text(
-                text = strings.fullMonthLabel(month),
-                color = colorScheme.onSurface,
-                fontSize = 21.sp,
-                lineHeight = 25.sp,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-            )
-            Text(
-                text = "›",
-                color = colorScheme.onSurfaceVariant,
-                fontSize = 31.sp,
-                lineHeight = 31.sp,
-                modifier = Modifier.align(Alignment.CenterEnd),
-            )
-        }
+        )
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -461,12 +441,11 @@ private fun MakeupCalendarDay(
                 },
             )
             when (status) {
-                MakeupDayStatus.Selected -> Text(
-                    text = "✓",
-                    color = Color.White,
-                    fontSize = 15.sp,
-                    lineHeight = 13.sp,
-                    fontWeight = FontWeight.Medium,
+                MakeupDayStatus.Selected -> Image(
+                    painter = painterResource(R.drawable.ic_checkin_ok),
+                    contentDescription = null,
+                    colorFilter = ColorFilter.tint(Color.White),
+                    modifier = Modifier.size(14.dp),
                 )
                 MakeupDayStatus.Completed -> Box(
                     modifier = Modifier
@@ -507,12 +486,11 @@ private fun MakeupLegendItem(type: MakeupLegendType, label: String, accent: Colo
                     .background(accent),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = "✓",
-                    color = Color.White,
-                    fontSize = 10.sp,
-                    lineHeight = 10.sp,
-                    fontWeight = FontWeight.Medium,
+                Image(
+                    painter = painterResource(R.drawable.ic_checkin_ok),
+                    contentDescription = null,
+                    colorFilter = ColorFilter.tint(Color.White),
+                    modifier = Modifier.size(10.dp),
                 )
             }
             MakeupLegendType.Unavailable -> Box(
@@ -533,14 +511,15 @@ private fun MakeupLegendItem(type: MakeupLegendType, label: String, accent: Colo
 }
 
 @Composable
-private fun MakeupSelectedCard(selectedDates: Set<String>, strings: LumaStrings) {
+private fun MakeupSelectedCard(selectedDates: Set<String>, colorTheme: String, strings: LumaStrings) {
     val colorScheme = MaterialTheme.colorScheme
+    val accent = themeColor(colorTheme)
     val selectedLocalDates = remember(selectedDates) {
         selectedDates
             .mapNotNull { date -> runCatching { LocalDate.parse(date) }.getOrNull() }
             .sorted()
     }
-    MakeupCard(contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp)) {
+    MakeupCard(accent = accent, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 14.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -549,16 +528,15 @@ private fun MakeupSelectedCard(selectedDates: Set<String>, strings: LumaStrings)
                 modifier = Modifier
                     .size(50.dp)
                     .clip(CircleShape)
-                    .background(colorScheme.primary.copy(alpha = if (isMakeupDark()) 0.14f else 0.09f))
-                    .border(1.5.dp, colorScheme.primary.copy(alpha = 0.76f), CircleShape),
+                    .background(accent.copy(alpha = if (isMakeupDark()) 0.14f else 0.09f))
+                    .border(1.5.dp, accent.copy(alpha = 0.76f), CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = "✓",
-                    color = colorScheme.primary,
-                    fontSize = 25.sp,
-                    lineHeight = 25.sp,
-                    fontWeight = FontWeight.Medium,
+                Image(
+                    painter = painterResource(R.drawable.ic_checkin_ok),
+                    contentDescription = null,
+                    colorFilter = ColorFilter.tint(accent),
+                    modifier = Modifier.size(24.dp),
                 )
             }
             Column(
@@ -575,7 +553,7 @@ private fun MakeupSelectedCard(selectedDates: Set<String>, strings: LumaStrings)
                 Text(
                     text = selectedLocalDates.takeIf { it.isNotEmpty() }?.let(strings::compactDateList)
                         ?: strings.t("makeupNoDatesSelected"),
-                    color = if (selectedLocalDates.isEmpty()) colorScheme.onSurfaceVariant else colorScheme.primary,
+                    color = if (selectedLocalDates.isEmpty()) colorScheme.onSurfaceVariant else accent,
                     fontSize = 14.sp,
                     lineHeight = 18.sp,
                     maxLines = 2,
@@ -590,9 +568,11 @@ private fun MakeupSelectedCard(selectedDates: Set<String>, strings: LumaStrings)
 private fun MakeupBottomBar(
     enabled: Boolean,
     label: String,
+    colorTheme: String,
     onClick: () -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
+    val accent = themeColor(colorTheme)
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -609,7 +589,7 @@ private fun MakeupBottomBar(
                 .height(50.dp),
             shape = RoundedCornerShape(15.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = colorScheme.primary,
+                containerColor = accent,
                 contentColor = Color.White,
                 disabledContainerColor = colorScheme.surfaceVariant,
                 disabledContentColor = colorScheme.onSurfaceVariant,
@@ -628,6 +608,7 @@ private fun MakeupBottomBar(
 @Composable
 private fun MakeupCard(
     modifier: Modifier = Modifier,
+    accent: Color? = null,
     contentPadding: PaddingValues = PaddingValues(14.dp),
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -638,7 +619,15 @@ private fun MakeupCard(
             .fillMaxWidth()
             .clip(shape)
             .background(colorScheme.surface.copy(alpha = if (isMakeupDark()) 0.88f else 0.98f))
-            .border(1.dp, colorScheme.outline.copy(alpha = if (isMakeupDark()) 0.18f else 0.12f), shape)
+            .border(
+                1.dp,
+                (accent ?: colorScheme.outline).copy(alpha = if (accent == null) {
+                    if (isMakeupDark()) 0.18f else 0.12f
+                } else {
+                    if (isMakeupDark()) 0.26f else 0.16f
+                }),
+                shape,
+            )
             .padding(contentPadding),
         content = content,
     )

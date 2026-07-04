@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import com.example.lumalogapp.data.HeatmapDay
 import com.example.lumalogapp.ui.i18n.LumaStrings
 import com.example.lumalogapp.ui.utils.heatmapColor
+import com.example.lumalogapp.ui.utils.themeColor
 import java.time.LocalDate
 import kotlin.math.floor
 
@@ -54,14 +56,18 @@ fun ContributionHeatmap(
     showDayDetails: Boolean = false,
     clickableDates: Set<String> = emptySet(),
     selectedDates: Set<String> = emptySet(),
+    makeupDates: Set<String> = emptySet(),
+    dayDetailLabels: Map<String, String> = emptyMap(),
     onDayClick: ((HeatmapDay) -> Unit)? = null,
     maxCellSize: Dp? = null,
+    showContainer: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     var selectedDay by remember(days) { mutableStateOf<HeatmapDay?>(null) }
     val colorScheme = MaterialTheme.colorScheme
     val density = LocalDensity.current
     val isDark = colorScheme.background == Color(0xFF0C1118)
+    val accent = themeColor(colorTheme)
     val emptySquareColor = if (isDark) {
         colorScheme.surfaceVariant.copy(alpha = 0.86f)
     } else {
@@ -105,19 +111,27 @@ fun ContributionHeatmap(
     }
     val panelBorder = colorScheme.outline.copy(alpha = if (isDark) 0.22f else 0.16f)
     val compact = maxCellSize != null
+    val heatmapBoxModifier = Modifier
+        .fillMaxWidth()
+        .let { base ->
+            if (showContainer) {
+                base
+                    .clip(panelShape)
+                    .background(panelBackground)
+                    .border(1.dp, panelBorder, panelShape)
+                    .padding(horizontal = if (compact) 8.dp else 10.dp, vertical = if (compact) 7.dp else 9.dp)
+            } else {
+                base
+            }
+        }
 
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(7.dp)) {
         Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(panelShape)
-                .background(panelBackground)
-                .border(1.dp, panelBorder, panelShape)
-                .padding(horizontal = if (compact) 8.dp else 10.dp, vertical = if (compact) 7.dp else 9.dp),
+            modifier = heatmapBoxModifier,
         ) {
             BoxWithConstraints(
                 modifier = Modifier.fillMaxWidth(),
-                contentAlignment = Alignment.Center,
+                contentAlignment = if (showContainer) Alignment.Center else Alignment.CenterStart,
             ) {
                 val weekCount = weeks.size.coerceAtLeast(1)
                 val horizontalGap = if (maxCellSize == null) 3.dp else 2.dp
@@ -175,7 +189,7 @@ fun ContributionHeatmap(
                                         .background(backgroundColor)
                                         .alpha(if (onDayClick != null && day != null && !canClick) 0.36f else 1f)
                                     if (isSelected) {
-                                        cellModifier = cellModifier.border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.78f), shape)
+                                        cellModifier = cellModifier.border(1.dp, accent.copy(alpha = 0.78f), shape)
                                     }
                                     if (day != null) {
                                         when {
@@ -186,7 +200,25 @@ fun ContributionHeatmap(
 
                                     Box(
                                         modifier = cellModifier,
-                                    )
+                                    ) {
+                                        if (day != null && makeupDates.contains(day.date) && cell.visible) {
+                                            val markerSize = if (compact) 3.dp else 4.dp
+                                            val markerColor = if (day.level >= 3) Color.White else accent
+                                            val markerBorder = if (day.level >= 3) {
+                                                accent.copy(alpha = 0.72f)
+                                            } else {
+                                                Color.White.copy(alpha = if (isDark) 0.72f else 0.90f)
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .align(Alignment.BottomEnd)
+                                                    .size(markerSize)
+                                                    .clip(CircleShape)
+                                                    .background(markerColor)
+                                                    .border(1.dp, markerBorder, CircleShape),
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -197,7 +229,7 @@ fun ContributionHeatmap(
         if (showDayDetails) {
             selectedDay?.let { day ->
                 Text(
-                    text = strings.heatmapDayLabel(day),
+                    text = dayDetailLabels[day.date] ?: strings.heatmapDayLabel(day),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     fontSize = 11.sp,
                     lineHeight = 14.sp,

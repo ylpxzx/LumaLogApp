@@ -1,5 +1,6 @@
 package com.example.lumalogapp.ui.components
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -102,15 +103,19 @@ private fun lumaIconOption(key: String): LumaIconOption {
     return lumaIconOptions.firstOrNull { it.key == normalizedKey } ?: lumaIconOptions.first()
 }
 
+@DrawableRes
+fun lumaIconDrawableFor(key: String): Int = lumaIconOption(key).drawableRes
+
 @Composable
 fun LumaIconBadge(
     iconKey: String,
     modifier: Modifier = Modifier,
     size: Dp = 38.dp,
     selected: Boolean = false,
+    accentColor: Color? = null,
 ) {
     val option = lumaIconOption(iconKey)
-    val color = themeColor(option.theme)
+    val color = accentColor ?: themeColor(option.theme)
     val isDark = MaterialTheme.colorScheme.background == Color(0xFF0C1118)
     Box(
         modifier = modifier

@@ -47,6 +47,7 @@ fun ItemCard(
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val isDark = isLumaCardDark()
+    val itemAccent = themeColor(entry.item.colorTheme)
     val visibleStats = listOf(
         preferences.showCurrentStreak,
         preferences.showLongestStreak,
@@ -60,7 +61,7 @@ fun ItemCard(
             .combinedClickable(
                 onClick = { onOpenCheckin(entry.item.id) },
                 onLongClick = { onOpenEdit(entry.item.id) },
-            ),
+        ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = colorScheme.surface.copy(alpha = 0.97f)),
         border = BorderStroke(1.dp, colorScheme.outline.copy(alpha = if (isDark) 0.28f else 0.22f)),
@@ -77,6 +78,7 @@ fun ItemCard(
                 LumaIconBadge(
                     iconKey = entry.item.iconKey,
                     size = 38.dp,
+                    accentColor = itemAccent,
                 )
                 Spacer(Modifier.width(11.dp))
                 Column(
@@ -98,7 +100,7 @@ fun ItemCard(
                             modifier = Modifier.weight(1f, fill = false),
                         )
                         if (preferences.showTodayStatus) {
-                            StatusChip(status = entry.status, strings = strings)
+                            StatusChip(status = entry.status, accent = itemAccent, strings = strings)
                         }
                     }
                     if (entry.item.description.isNotBlank()) {
@@ -134,7 +136,7 @@ fun ItemCard(
 
 @Composable
 private fun HabitCategoryPill(category: Category?, fallbackTheme: String, strings: LumaStrings) {
-    val color = themeColor(category?.colorTheme ?: fallbackTheme)
+    val color = themeColor(fallbackTheme)
     val isDark = isLumaCardDark()
     Row(
         modifier = Modifier
@@ -164,8 +166,9 @@ private fun HabitCategoryPill(category: Category?, fallbackTheme: String, string
 }
 
 @Composable
-private fun StatusChip(status: CheckinStatus, strings: LumaStrings) {
-    val color = statusColor(status, isLumaCardDark())
+private fun StatusChip(status: CheckinStatus, accent: Color, strings: LumaStrings) {
+    val colorScheme = MaterialTheme.colorScheme
+    val color = statusColor(status, accent, colorScheme.onSurfaceVariant)
     Text(
         text = strings.statusText(status),
         color = color,
@@ -181,14 +184,14 @@ private fun StatusChip(status: CheckinStatus, strings: LumaStrings) {
     )
 }
 
-private fun statusColor(status: CheckinStatus, isDark: Boolean): Color = when (status) {
+private fun statusColor(status: CheckinStatus, accent: Color, neutral: Color): Color = when (status) {
     CheckinStatus.Completed,
-    CheckinStatus.CompletedCanContinue -> if (isDark) Color(0xFF4ADE80) else Color(0xFF129A58)
-    CheckinStatus.Available -> if (isDark) Color(0xFF5EEAD4) else Color(0xFF0C8EA0)
+    CheckinStatus.CompletedCanContinue,
+    CheckinStatus.Available,
     CheckinStatus.BeforeTimeWindow,
-    CheckinStatus.AfterTimeWindow -> if (isDark) Color(0xFFFBBF24) else Color(0xFFE58B22)
+    CheckinStatus.AfterTimeWindow -> accent
     CheckinStatus.NotStarted,
-    CheckinStatus.Ended -> if (isDark) Color(0xFF94A3B8) else Color(0xFF64748B)
+    CheckinStatus.Ended -> neutral
 }
 
 @Composable
