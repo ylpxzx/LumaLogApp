@@ -41,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -172,6 +173,7 @@ fun CheckinScreen(
     shareEntry?.let { currentEntry ->
         ShareTemplatePickerDialog(
             strings = strings,
+            colorTheme = currentEntry.item.colorTheme,
             onDismiss = { shareEntry = null },
             onSelect = { template ->
                 shareEntry = null
@@ -279,6 +281,7 @@ private fun CheckinTopAction(
 @Composable
 private fun ShareTemplatePickerDialog(
     strings: LumaStrings,
+    colorTheme: String,
     onDismiss: () -> Unit,
     onSelect: (ShareTemplate) -> Unit,
 ) {
@@ -286,7 +289,8 @@ private fun ShareTemplatePickerDialog(
     var selectedTemplate by remember { mutableStateOf(templates.getOrNull(1) ?: templates.first()) }
     val colorScheme = MaterialTheme.colorScheme
     val dark = isCheckinDark()
-    val accent = if (dark) Color(0xFFC084FC) else Color(0xFFA75BFF)
+    val habitAccent = themeColor(colorTheme)
+    val accent = if (dark) lerp(habitAccent, Color.White, 0.18f) else habitAccent
     val scrim = Color.Black.copy(alpha = if (dark) 0.52f else 0.24f)
     val panelBackground = if (dark) Color(0xFF11131A) else Color(0xFFFFFBFF)
     val handleColor = if (dark) Color(0xFF5E6370) else Color(0xFFB7B8C1)
