@@ -150,8 +150,8 @@ private fun drawClassicTemplate(
     drawSoftCard(canvas, RectF(36f, 58f, 1500f, 1080f), 36f, colors.surface, withAlpha(colors.primary, 0.55f), 0.0f)
 
     drawIconTile(canvas, context, entry.item.iconKey, RectF(92f, 103f, 228f, 239f), 30f, colors)
-    drawFittedText(canvas, entry.item.name, 266f, 161f, 920f, 58f, 38f, colors.text, Typeface.BOLD)
-    drawMetaLine(canvas, entry, strings, 266f, 222f, 1040f, 29f, colors)
+    drawFittedText(canvas, entry.item.name, 266f, 161f, 920f, 40f, 26f, colors.text, Typeface.BOLD)
+    drawMetaLine(canvas, entry, strings, 266f, 222f, 1040f, 25f, colors)
 
     drawStatRow(
         canvas = canvas,
@@ -205,8 +205,8 @@ private fun drawPosterTemplate(
     drawSproutWatermark(canvas, 1360f, 940f, 190f, colors.primary)
     canvas.restore()
 
-    drawPosterTitle(canvas, context, entry, 93f, 197f, colors)
-    drawMetaLine(canvas, entry, strings, 95f, 269f, 610f, 34f, colors, highlightStreak = true)
+    drawPosterTitle(canvas, context, entry, 93f, 236f, colors)
+    drawMetaLine(canvas, entry, strings, 219f, 249f, 450f, 22f, colors, highlightStreak = true)
 
     drawStatRow(
         canvas = canvas,
@@ -270,8 +270,8 @@ private fun drawZenTemplate(
         x = 620f,
         y = 388f,
         maxWidth = 720f,
-        size = 58f,
-        minSize = 38f,
+        size = 52f,
+        minSize = 34f,
         color = colors.text,
         typefaceStyle = Typeface.BOLD,
         align = Paint.Align.CENTER,
@@ -356,7 +356,7 @@ private fun drawDashboardTemplate(
     drawSoftCard(canvas, RectF(40f, 40f, 1600f, 1030f), 50f, colors.surface, withAlpha(colors.primary, 0.45f), 0.12f)
 
     drawIconTile(canvas, context, entry.item.iconKey, RectF(88f, 96f, 238f, 246f), 28f, colors)
-    drawFittedText(canvas, entry.item.name, 282f, 166f, 420f, 59f, 39f, colors.text, Typeface.BOLD)
+    drawFittedText(canvas, entry.item.name, 282f, 166f, 420f, 52f, 34f, colors.text, Typeface.BOLD)
     drawMetaLine(canvas, entry, strings, 282f, 225f, 420f, 33f, colors, highlightStreak = true)
 
     val stats = shareStats(entry, strings)
@@ -408,28 +408,26 @@ private fun drawPosterTitle(
     y: Float,
     colors: ShareColors,
 ) {
-    val iconRect = RectF(x, y - 78f, x + 92f, y + 14f)
+    val iconRect = RectF(x, y - 84f, x + 104f, y + 20f)
     drawIconTile(
         canvas = canvas,
         context = context,
         iconKey = entry.item.iconKey,
         rect = iconRect,
-        radius = 28f,
+        radius = 22f,
         colors = colors,
-        transparentTile = true,
+        iconPaddingRatio = 0.16f,
     )
 
     var title = entry.item.name
-    val titlePaint = textPaint(86f, colors.text, Typeface.BOLD)
-    val titleX = iconRect.right + 18f
-    val maxTitleWidth = 590f
-    while (titlePaint.textSize > 54f && titlePaint.measureText(title) > maxTitleWidth) {
-        titlePaint.textSize -= 1f
-    }
+    val titlePaint = textPaint(34f, colors.text, Typeface.BOLD)
+    val titleX = iconRect.right + 22f
+    val maxTitleWidth = 450f
     while (title.length > 4 && titlePaint.measureText(title) > maxTitleWidth) {
         title = "${title.dropLast(4)}..."
     }
-    canvas.drawText(title, titleX, y, titlePaint)
+    val titleBaseline = iconRect.top - titlePaint.fontMetrics.ascent + 28f
+    canvas.drawText(title, titleX, titleBaseline, titlePaint)
 }
 
 private fun shareColors(primary: Int, darkTheme: Boolean): ShareColors {
@@ -883,6 +881,7 @@ private fun drawIconTile(
     radius: Float,
     colors: ShareColors,
     transparentTile: Boolean = false,
+    iconPaddingRatio: Float? = null,
 ) {
     val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     if (!transparentTile) {
@@ -906,7 +905,7 @@ private fun drawIconTile(
     val drawable = ContextCompat.getDrawable(context, lumaIconDrawableFor(iconKey))?.mutate()
     if (drawable != null) {
         drawable.setTint(colors.primary)
-        val padding = rect.width() * if (transparentTile) 0.10f else 0.20f
+        val padding = rect.width() * (iconPaddingRatio ?: if (transparentTile) 0.06f else 0.20f)
         drawable.setBounds(
             (rect.left + padding).toInt(),
             (rect.top + padding).toInt(),
