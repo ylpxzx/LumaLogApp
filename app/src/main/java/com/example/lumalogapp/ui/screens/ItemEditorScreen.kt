@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -429,6 +430,7 @@ private fun EditorTopBar(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .statusBarsPadding()
             .height(60.dp)
             .background(colorScheme.background)
             .padding(horizontal = 16.dp),

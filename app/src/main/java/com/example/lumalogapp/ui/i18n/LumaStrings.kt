@@ -5,6 +5,7 @@ import com.example.lumalogapp.data.CheckinStatus
 import com.example.lumalogapp.data.HeatmapDay
 import com.example.lumalogapp.data.LanguagePreference
 import java.time.LocalDate
+import java.time.YearMonth
 
 class LumaStrings(private val language: LanguagePreference) {
     fun t(key: String, vararg params: Pair<String, String>): String {
@@ -28,6 +29,31 @@ class LumaStrings(private val language: LanguagePreference) {
         }
         return if (month == 1) "${year}年${month}月" else "${month}月"
     }
+
+    fun fullMonthLabel(month: YearMonth): String {
+        if (language == LanguagePreference.En) {
+            val label = englishMonths.getOrElse(month.monthValue - 1) { month.monthValue.toString() }
+            return "$label ${month.year}"
+        }
+        return "${month.year}年${month.monthValue}月"
+    }
+
+    fun weekdayLabels(): List<String> =
+        if (language == LanguagePreference.En) {
+            listOf("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat")
+        } else {
+            listOf("日", "一", "二", "三", "四", "五", "六")
+        }
+
+    fun compactDateLabel(date: LocalDate): String =
+        if (language == LanguagePreference.En) {
+            "${englishMonths.getOrElse(date.monthValue - 1) { date.monthValue.toString() }} ${date.dayOfMonth}"
+        } else {
+            "${date.monthValue}月${date.dayOfMonth}日"
+        }
+
+    fun compactDateList(dates: List<LocalDate>): String =
+        dates.joinToString(if (language == LanguagePreference.En) ", " else "、") { compactDateLabel(it) }
 
     fun heatmapDayLabel(day: HeatmapDay): String {
         val date = runCatching { LocalDate.parse(day.date) }.getOrNull()
@@ -200,7 +226,14 @@ private val zh = mapOf(
     "makeupConfirmed" to "已确认补签 {count} 天",
     "makeupUnlimited" to "补签不限次数",
     "makeupRemaining" to "本月剩余补签 {count} 次",
+    "makeupUnlimitedShort" to "本月不限次数",
+    "makeupRemainingShort" to "本月剩余 {count} 次",
     "makeupSelected" to "已选择 {count} 天",
+    "makeupNoDatesSelected" to "请选择补签日期",
+    "makeupCompletedLegend" to "已完成",
+    "makeupAvailableLegend" to "可补签",
+    "makeupSelectedLegend" to "已选择",
+    "makeupUnavailableLegend" to "不可用",
     "checkinRecords" to "签到记录",
     "noCheckinRecords" to "暂无签到记录",
     "makeupCheckin" to "补签",
@@ -359,7 +392,14 @@ private val en = mapOf(
     "makeupConfirmed" to "Confirmed {count} makeup day(s)",
     "makeupUnlimited" to "Unlimited makeup check-ins",
     "makeupRemaining" to "{count} makeup check-in(s) left this month",
+    "makeupUnlimitedShort" to "No monthly limit",
+    "makeupRemainingShort" to "{count} left this month",
     "makeupSelected" to "{count} day(s) selected",
+    "makeupNoDatesSelected" to "Select makeup date(s)",
+    "makeupCompletedLegend" to "Completed",
+    "makeupAvailableLegend" to "Available",
+    "makeupSelectedLegend" to "Selected",
+    "makeupUnavailableLegend" to "Unavailable",
     "checkinRecords" to "Check-in records",
     "noCheckinRecords" to "No check-in records yet",
     "makeupCheckin" to "Makeup",
