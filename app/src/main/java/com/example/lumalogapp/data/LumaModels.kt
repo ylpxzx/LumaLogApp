@@ -69,6 +69,7 @@ data class Item(
     val name: String,
     val description: String = "",
     val colorTheme: String = "green",
+    val iconKey: String = "chuangye",
     val startDate: String = LocalDate.now().toString(),
     val endDate: String = "",
     val isUnlimited: Boolean = true,
@@ -76,6 +77,8 @@ data class Item(
     val timeMode: TimeMode = TimeMode.AllDay,
     val validStartTime: String = "09:00",
     val validEndTime: String = "23:59",
+    val allowMakeup: Boolean = false,
+    val makeupMonthlyLimit: Int = 3,
     val allowExtraCheckins: Boolean = false,
     val showOnDashboard: Boolean = true,
     val sortOrder: Int = 0,
@@ -91,6 +94,15 @@ data class Checkin(
     val count: Int = 1,
     val note: String = "",
     val source: String = "normal",
+    val createdAt: String = java.time.OffsetDateTime.now().toString(),
+)
+
+data class Badge(
+    val id: String,
+    val title: String,
+    val description: String,
+    val level: String,
+    val earned: Boolean,
 )
 
 data class LumaData(
@@ -214,6 +226,7 @@ private fun Item.toJson() = JSONObject()
     .put("name", name)
     .put("description", description)
     .put("color_theme", colorTheme)
+    .put("icon_key", iconKey)
     .put("start_date", startDate)
     .put("end_date", endDate)
     .put("is_unlimited", isUnlimited)
@@ -221,6 +234,8 @@ private fun Item.toJson() = JSONObject()
     .put("time_mode", timeMode.value)
     .put("valid_start_time", validStartTime)
     .put("valid_end_time", validEndTime)
+    .put("allow_makeup", allowMakeup)
+    .put("makeup_monthly_limit", makeupMonthlyLimit)
     .put("allow_extra_checkins", allowExtraCheckins)
     .put("show_on_dashboard", showOnDashboard)
     .put("sort_order", sortOrder)
@@ -233,6 +248,7 @@ private fun JSONObject.toItem() = Item(
     name = optString("name"),
     description = optString("description"),
     colorTheme = optString("color_theme", "green"),
+    iconKey = optString("icon_key", "chuangye"),
     startDate = optString("start_date", LocalDate.now().toString()),
     endDate = optString("end_date"),
     isUnlimited = optBoolean("is_unlimited", true),
@@ -240,6 +256,8 @@ private fun JSONObject.toItem() = Item(
     timeMode = TimeMode.from(optString("time_mode")),
     validStartTime = optString("valid_start_time", "09:00"),
     validEndTime = optString("valid_end_time", "23:59"),
+    allowMakeup = optBoolean("allow_makeup", false),
+    makeupMonthlyLimit = optInt("makeup_monthly_limit", 3).coerceAtLeast(0),
     allowExtraCheckins = optBoolean("allow_extra_checkins", false),
     showOnDashboard = optBoolean("show_on_dashboard", true),
     sortOrder = optInt("sort_order", 0),
@@ -255,6 +273,7 @@ private fun Checkin.toJson() = JSONObject()
     .put("count", count)
     .put("note", note)
     .put("source", source)
+    .put("created_at", createdAt)
 
 private fun JSONObject.toCheckin() = Checkin(
     id = optLong("id"),
@@ -264,6 +283,9 @@ private fun JSONObject.toCheckin() = Checkin(
     count = optInt("count", 1).coerceAtLeast(1),
     note = optString("note"),
     source = optString("source", "normal"),
+    createdAt = optString("created_at").ifBlank {
+        "${optString("checkin_date")}T${optString("checkin_time", "00:00")}"
+    },
 )
 
 private fun <T> JSONArray?.toList(mapper: (JSONObject) -> T): List<T> {

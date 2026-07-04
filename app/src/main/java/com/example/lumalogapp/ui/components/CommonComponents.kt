@@ -2,6 +2,7 @@ package com.example.lumalogapp.ui.components
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -28,18 +29,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.lumalogapp.R
+import com.example.lumalogapp.data.Badge
 import com.example.lumalogapp.ui.i18n.LumaStrings
 import com.example.lumalogapp.ui.utils.colorThemes
 import com.example.lumalogapp.ui.utils.themeColor
@@ -131,7 +137,7 @@ fun ColorThemePicker(selected: String, strings: LumaStrings, onSelect: (String) 
 }
 
 @Composable
-fun LumaLogo() {
+fun LumaLogo(strings: LumaStrings) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -243,7 +249,7 @@ fun LumaLogo() {
                     )
                 }
                 Text(
-                    text = "HABIT HEATMAP",
+                    text = strings.t("brandTagline"),
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.3.sp,
@@ -264,5 +270,117 @@ fun RoundIconButton(onClick: () -> Unit, content: @Composable () -> Unit) {
         modifier = Modifier.size(42.dp),
     ) {
         content()
+    }
+}
+
+@Composable
+fun FoldIndicator(
+    expanded: Boolean,
+    modifier: Modifier = Modifier.size(16.dp),
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+) {
+    Image(
+        painter = painterResource(R.drawable.ic_fold),
+        contentDescription = null,
+        colorFilter = ColorFilter.tint(color),
+        modifier = modifier.rotate(if (expanded) -90f else 90f),
+    )
+}
+
+@Composable
+fun AchievementBadge(
+    badge: Badge,
+    modifier: Modifier = Modifier,
+    strings: LumaStrings? = null,
+    accentColor: Color? = null,
+) {
+    Column(
+        modifier = modifier.width(76.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        BadgeIcon(badge = badge, accentColor = accentColor, modifier = Modifier.size(54.dp))
+        Text(
+            text = strings?.badgeTitle(badge) ?: badge.title,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 11.sp,
+            lineHeight = 13.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun BadgeIcon(badge: Badge, accentColor: Color? = null, modifier: Modifier = Modifier) {
+    val levelAccent = when (badge.level) {
+        "gold" -> Color(0xFFFACC15)
+        "silver" -> Color(0xFFCBD5E1)
+        else -> Color(0xFFD99A5B)
+    }
+    val accent = accentColor ?: levelAccent
+    val secondary = accentColor?.copy(alpha = 0.62f) ?: Color(0xFF22C55E)
+    val tertiary = accentColor?.copy(alpha = 0.36f) ?: Color(0xFF84CC16)
+    Canvas(modifier = modifier) {
+        drawRoundRect(
+            brush = Brush.linearGradient(listOf(Color(0xFF172033), Color(0xFF101827))),
+            cornerRadius = CornerRadius(12.dp.toPx(), 12.dp.toPx()),
+        )
+        drawRoundRect(
+            color = accent.copy(alpha = 0.18f),
+            topLeft = androidx.compose.ui.geometry.Offset(5.dp.toPx(), 5.dp.toPx()),
+            size = androidx.compose.ui.geometry.Size(size.width - 10.dp.toPx(), size.height - 10.dp.toPx()),
+            cornerRadius = CornerRadius(9.dp.toPx(), 9.dp.toPx()),
+        )
+
+        when (badge.id) {
+            "week_streak", "seven_day_runner" -> {
+                drawArc(
+                    color = accent,
+                    startAngle = 190f,
+                    sweepAngle = 160f,
+                    useCenter = false,
+                    style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round),
+                    size = androidx.compose.ui.geometry.Size(size.width * 0.68f, size.height * 0.56f),
+                    topLeft = androidx.compose.ui.geometry.Offset(size.width * 0.16f, size.height * 0.22f),
+                )
+                repeat(5) { index ->
+                    drawCircle(
+                        color = if (index % 2 == 0) secondary else accent,
+                        radius = 3.dp.toPx(),
+                        center = androidx.compose.ui.geometry.Offset(size.width * (0.22f + index * 0.14f), size.height * (0.68f - index.coerceAtMost(2) * 0.08f)),
+                    )
+                }
+            }
+            "month_streak", "thirty_day_runner" -> {
+                drawCircle(color = accent, radius = size.width * 0.27f, center = center, style = Stroke(width = 4.dp.toPx()))
+                drawCircle(color = secondary, radius = size.width * 0.16f, center = center, style = Stroke(width = 2.dp.toPx()))
+            }
+            "hundred_lights", "hundred_total_lights", "three_habits_lit" -> {
+                repeat(3) { x ->
+                    repeat(3) { y ->
+                        drawRoundRect(
+                            color = listOf(secondary, accent, tertiary)[(x + y) % 3],
+                            topLeft = androidx.compose.ui.geometry.Offset(15.dp.toPx() + x * 10.dp.toPx(), 15.dp.toPx() + y * 10.dp.toPx()),
+                            size = androidx.compose.ui.geometry.Size(7.dp.toPx(), 7.dp.toPx()),
+                            cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx()),
+                        )
+                    }
+                }
+            }
+            "steady_flow" -> {
+                val path = Path().apply {
+                    moveTo(size.width * 0.16f, size.height * 0.58f)
+                    cubicTo(size.width * 0.32f, size.height * 0.22f, size.width * 0.46f, size.height * 0.22f, size.width * 0.58f, size.height * 0.58f)
+                    cubicTo(size.width * 0.70f, size.height * 0.92f, size.width * 0.84f, size.height * 0.92f, size.width * 0.92f, size.height * 0.58f)
+                }
+                drawPath(path = path, color = accent, style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round))
+                drawPath(path = path, color = secondary, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round))
+            }
+            else -> {
+                drawCircle(color = accent, radius = size.width * 0.26f, center = center, style = Stroke(width = 4.dp.toPx()))
+                drawCircle(color = secondary, radius = size.width * 0.14f, center = center)
+            }
+        }
     }
 }
