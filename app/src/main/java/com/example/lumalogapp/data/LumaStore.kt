@@ -103,11 +103,55 @@ class LumaStore(private val context: Context) {
             note = trimmedNote,
             createdAt = createdAt,
         )
-        return data.copy(
-            checkins = data.checkins.map {
+        val existingCheckins = if (trimmedNote.isEmpty()) {
+            data.checkins
+        } else {
+            data.checkins.map {
                 if (it.itemId == itemId && it.checkinDate == today) it.copy(note = trimmedNote) else it
-            } + checkin,
+            }
+        }
+        return data.copy(
+            checkins = existingCheckins + checkin,
         )
+    }
+
+    fun updateCheckinNote(data: LumaData, itemId: Long, date: String, note: String): LumaData {
+        val trimmedDate = date.trim()
+        val trimmedNote = note.trim()
+        if (trimmedDate.isEmpty()) return data
+
+        val matchingRecords = data.checkins.filter { it.itemId == itemId && it.checkinDate == trimmedDate }
+        if (matchingRecords.isEmpty() && trimmedNote.isEmpty()) return data
+
+        val updatedCheckins = data.checkins
+            .filterNot {
+                trimmedNote.isEmpty() &&
+                    it.itemId == itemId &&
+                    it.checkinDate == trimmedDate &&
+                    it.count <= 0 &&
+                    it.source == "note"
+            }
+            .map {
+                if (it.itemId == itemId && it.checkinDate == trimmedDate) it.copy(note = trimmedNote) else it
+            }
+
+        if (matchingRecords.isNotEmpty()) {
+            return data.copy(checkins = updatedCheckins)
+        }
+
+        val now = LocalTime.now().withSecond(0).withNano(0).toString()
+        val createdAt = OffsetDateTime.now().toString()
+        val noteRecord = Checkin(
+            id = nextId(data.checkins.map { it.id }),
+            itemId = itemId,
+            checkinDate = trimmedDate,
+            checkinTime = now,
+            count = 0,
+            note = trimmedNote,
+            source = "note",
+            createdAt = createdAt,
+        )
+        return data.copy(checkins = updatedCheckins + noteRecord)
     }
 
     fun makeupCheckins(data: LumaData, itemId: Long, dates: List<String>): LumaData {

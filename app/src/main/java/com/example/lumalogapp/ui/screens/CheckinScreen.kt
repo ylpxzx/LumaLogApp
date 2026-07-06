@@ -54,6 +54,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.example.lumalogapp.R
 import com.example.lumalogapp.data.Checkin
 import com.example.lumalogapp.data.DashboardItem
+import com.example.lumalogapp.data.HeatmapDay
 import com.example.lumalogapp.data.LumaData
 import com.example.lumalogapp.data.buildDashboardItems
 import com.example.lumalogapp.data.canCheckIn
@@ -81,17 +82,15 @@ fun CheckinScreen(
     onBack: () -> Unit,
     onOpenMakeup: () -> Unit,
     onSaveShareImage: (DashboardItem, ShareTemplate) -> Unit,
-    onCheckin: (String) -> Unit,
+    onCheckin: () -> Unit,
+    onUpdateNote: (String, String) -> Unit,
 ) {
     val entry = remember(data, itemId) { buildDashboardItems(data).firstOrNull { it.item.id == itemId } }
     val itemCheckins = remember(data, itemId) {
         data.checkins.filter { it.itemId == itemId }.sortedByDescending { it.checkinDate }
     }
-    val today = remember { LocalDate.now().toString() }
-    val todayNote = remember(itemCheckins, today) { latestNoteForDate(itemCheckins, today) }
     var achievementsExpanded by remember(itemId) { mutableStateOf(false) }
     var shareEntry by remember(itemId) { mutableStateOf<DashboardItem?>(null) }
-    var checkinNote by remember(itemId, todayNote) { mutableStateOf(todayNote) }
 
     val colorScheme = MaterialTheme.colorScheme
     val isDark = isCheckinDark()
@@ -137,12 +136,8 @@ fun CheckinScreen(
                     CheckinGoalCard(
                         entry = entry,
                         strings = strings,
-                        note = checkinNote,
-                        onNoteChange = { checkinNote = it },
                         onOpenMakeup = onOpenMakeup,
-                        onCheckin = {
-                            onCheckin(checkinNote)
-                        },
+                        onCheckin = onCheckin,
                     )
                 }
 
@@ -151,7 +146,12 @@ fun CheckinScreen(
                 }
 
                 item {
-                    CheckinHeatmapCard(entry = entry, checkins = itemCheckins, strings = strings)
+                    CheckinHeatmapCard(
+                        entry = entry,
+                        checkins = itemCheckins,
+                        strings = strings,
+                        onUpdateNote = onUpdateNote,
+                    )
                 }
 
                 item {
@@ -695,8 +695,6 @@ private fun HabitIconTile(entry: DashboardItem) {
 private fun CheckinGoalCard(
     entry: DashboardItem,
     strings: LumaStrings,
-    note: String,
-    onNoteChange: (String) -> Unit,
     onOpenMakeup: () -> Unit,
     onCheckin: () -> Unit,
 ) {
@@ -705,7 +703,6 @@ private fun CheckinGoalCard(
     val enabled = canCheckIn(entry.status)
     val target = entry.item.dailyTargetCount.coerceAtLeast(1)
     val count = entry.todayCount.coerceIn(0, target)
-    val showNoteInput = count < target
     val segmentCount = target.coerceIn(1, 5)
     val progressUnits = (count.toFloat() / target.toFloat()).coerceIn(0f, 1f) * segmentCount
     val inactiveSegment = if (isCheckinDark()) {
@@ -763,20 +760,6 @@ private fun CheckinGoalCard(
         }
 
         Spacer(Modifier.height(12.dp))
-
-        if (showNoteInput) {
-            OutlinedTextField(
-                value = note,
-                onValueChange = { onNoteChange(it.take(CheckinNoteMaxLength)) },
-                label = { Text(strings.t("checkinNote")) },
-                placeholder = { Text(strings.t("checkinNotePlaceholder")) },
-                minLines = 2,
-                maxLines = 3,
-                modifier = Modifier.fillMaxWidth(),
-            )
-
-            Spacer(Modifier.height(12.dp))
-        }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -998,40 +981,27 @@ private fun CheckinStat(
 }
 
 @Composable
-private fun CheckinHeatmapCard(entry: DashboardItem, checkins: List<Checkin>, strings: LumaStrings) {
+private fun CheckinHeatmapCard(
+    entry: DashboardItem,
+    checkins: List<Checkin>,
+    strings: LumaStrings,
+    onUpdateNote: (String, String) -> Unit,
+) {
     val colorScheme = MaterialTheme.colorScheme
     val today = remember { LocalDate.now().toString() }
     val heatmapDays = remember(entry.heatmap) { entry.heatmap }
     val checkinsByDate = remember(checkins) { checkins.groupBy { it.checkinDate } }
     val makeupDates = remember(checkinsByDate) {
-        checkinsByDate.filterValues { records -> records.any { it.source == "makeup" } }.keys
+        checkinsByDate.filterValues { records -> records.any { it.source == "makeup" && it.count > 0 } }.keys
     }
-    val dayDetailLabels = remember(heatmapDays, checkinsByDate, strings) {
-        heatmapDays.associate { day ->
-            val records = checkinsByDate[day.date].orEmpty()
-            val hasMakeup = records.any { it.source == "makeup" }
-            val hasNormal = records.any { it.source != "makeup" }
-            val sourceLabel = when {
-                hasNormal && hasMakeup -> "${strings.t("normalCheckin")} + ${strings.t("makeupCheckin")}"
-                hasMakeup -> strings.t("makeupCheckin")
-                hasNormal -> strings.t("normalCheckin")
-                else -> null
-            }
-            val note = latestNote(records)
-            val parts = buildList {
-                sourceLabel?.let { add("${strings.heatmapDayLabel(day)} / $it") }
-                if (note.isNotEmpty()) {
-                    add(
-                        strings.t(
-                            "checkinNoteDetail",
-                            "note" to note,
-                        ),
-                    )
-                }
-            }
-            day.date to parts.joinToString("\n")
-        }.filterValues { it.isNotBlank() }
-    }
+    val clickableDates = remember(heatmapDays) { heatmapDays.map { it.date }.toSet() }
+    var selectedDate by remember(entry.item.id) { mutableStateOf<String?>(null) }
+    var editingDate by remember(entry.item.id) { mutableStateOf<String?>(null) }
+    val selectedDay = remember(heatmapDays, selectedDate) { heatmapDays.firstOrNull { it.date == selectedDate } }
+    val editingDay = remember(heatmapDays, editingDate) { heatmapDays.firstOrNull { it.date == editingDate } }
+    val highlightedDates = selectedDate?.let { setOf(today, it) } ?: setOf(today)
+    val accent = themeColor(entry.item.colorTheme)
+
     CheckinCard(contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -1055,13 +1025,201 @@ private fun CheckinHeatmapCard(entry: DashboardItem, checkins: List<Checkin>, st
             days = heatmapDays,
             colorTheme = entry.item.colorTheme,
             strings = strings,
-            showDayDetails = true,
-            selectedDates = setOf(today),
+            selectedDates = highlightedDates,
             makeupDates = makeupDates,
-            dayDetailLabels = dayDetailLabels,
+            clickableDates = clickableDates,
+            onDayClick = { selectedDate = it.date },
             showContainer = false,
             modifier = Modifier.fillMaxWidth(),
         )
+        selectedDay?.let { day ->
+            Spacer(Modifier.height(7.dp))
+            HeatmapDayDetail(
+                day = day,
+                records = checkinsByDate[day.date].orEmpty(),
+                strings = strings,
+                accent = accent,
+                onEditNote = { editingDate = day.date },
+            )
+        }
+    }
+
+    editingDay?.let { day ->
+        val records = checkinsByDate[day.date].orEmpty()
+        CheckinNoteEditorDialog(
+            day = day,
+            initialNote = latestNote(records),
+            strings = strings,
+            accent = accent,
+            onDismiss = { editingDate = null },
+            onSave = { note ->
+                editingDate = null
+                onUpdateNote(day.date, note)
+            },
+        )
+    }
+}
+
+@Composable
+private fun HeatmapDayDetail(
+    day: HeatmapDay,
+    records: List<Checkin>,
+    strings: LumaStrings,
+    accent: Color,
+    onEditNote: () -> Unit,
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    val dark = isCheckinDark()
+    val note = latestNote(records)
+    val sourceLabel = checkinSourceLabel(records, strings) ?: strings.t("noCheckinRecords")
+    val actionLabel = strings.t(if (note.isEmpty()) "addCheckinNote" else "editCheckinNote")
+    val detailShape = RoundedCornerShape(9.dp)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(detailShape)
+            .background(colorScheme.surfaceVariant.copy(alpha = if (dark) 0.42f else 0.58f))
+            .padding(horizontal = 9.dp, vertical = 7.dp),
+        verticalArrangement = Arrangement.spacedBy(5.dp),
+    ) {
+        Text(
+            text = strings.heatmapDayLabel(day),
+            color = colorScheme.onSurfaceVariant,
+            fontSize = 11.sp,
+            lineHeight = 14.sp,
+            fontWeight = FontWeight.Medium,
+        )
+        Text(
+            text = sourceLabel,
+            color = colorScheme.onSurfaceVariant.copy(alpha = if (dark) 0.82f else 0.76f),
+            fontSize = 11.sp,
+            lineHeight = 14.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = strings.t("checkinNote"),
+                    color = colorScheme.onSurfaceVariant.copy(alpha = if (dark) 0.78f else 0.72f),
+                    fontSize = 10.sp,
+                    lineHeight = 12.sp,
+                    maxLines = 1,
+                )
+                Text(
+                    text = note.ifEmpty { strings.t("checkinNoteEmpty") },
+                    color = colorScheme.onSurfaceVariant,
+                    fontSize = 11.sp,
+                    lineHeight = 14.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Text(
+                text = actionLabel,
+                color = accent,
+                fontSize = 12.sp,
+                lineHeight = 15.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .border(1.dp, accent.copy(alpha = if (dark) 0.44f else 0.32f), RoundedCornerShape(8.dp))
+                    .clickable(onClick = onEditNote)
+                    .padding(horizontal = 9.dp, vertical = 6.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CheckinNoteEditorDialog(
+    day: HeatmapDay,
+    initialNote: String,
+    strings: LumaStrings,
+    accent: Color,
+    onDismiss: () -> Unit,
+    onSave: (String) -> Unit,
+) {
+    var note by remember(day.date, initialNote) { mutableStateOf(initialNote) }
+    val colorScheme = MaterialTheme.colorScheme
+    val dark = isCheckinDark()
+    val shape = RoundedCornerShape(20.dp)
+    val title = strings.t(if (initialNote.isBlank()) "addCheckinNote" else "editCheckinNote")
+
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(shape)
+                .background(colorScheme.surface)
+                .border(1.dp, colorScheme.outline.copy(alpha = if (dark) 0.22f else 0.14f), shape)
+                .imePadding()
+                .padding(18.dp),
+        ) {
+            Text(
+                text = title,
+                color = colorScheme.onSurface,
+                fontSize = 18.sp,
+                lineHeight = 22.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = strings.heatmapDayLabel(day),
+                color = colorScheme.onSurfaceVariant,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+            )
+            Spacer(Modifier.height(14.dp))
+            OutlinedTextField(
+                value = note,
+                onValueChange = { note = it.take(CheckinNoteMaxLength) },
+                label = { Text(strings.t("checkinNote")) },
+                placeholder = { Text(strings.t("checkinNotePlaceholder")) },
+                minLines = 3,
+                maxLines = 5,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ShareTemplateDialogAction(
+                    text = strings.t("cancel"),
+                    color = colorScheme.onSurfaceVariant,
+                    onClick = onDismiss,
+                    modifier = Modifier.weight(1f),
+                )
+                ShareTemplateDialogAction(
+                    text = strings.t("save"),
+                    color = accent,
+                    onClick = { onSave(note) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+private fun checkinSourceLabel(records: List<Checkin>, strings: LumaStrings): String? {
+    val countedRecords = records.filter { it.count > 0 }
+    val hasMakeup = countedRecords.any { it.source == "makeup" }
+    val hasNormal = countedRecords.any { it.source != "makeup" }
+    return when {
+        hasNormal && hasMakeup -> "${strings.t("normalCheckin")} + ${strings.t("makeupCheckin")}"
+        hasMakeup -> strings.t("makeupCheckin")
+        hasNormal -> strings.t("normalCheckin")
+        else -> null
     }
 }
 
@@ -1257,9 +1415,6 @@ private fun iconDrawableFor(key: String): Int {
     val normalized = normalizeLumaIconKey(key)
     return lumaIconOptions.firstOrNull { it.key == normalized }?.drawableRes ?: lumaIconOptions.first().drawableRes
 }
-
-private fun latestNoteForDate(checkins: List<Checkin>, date: String): String =
-    latestNote(checkins.filter { it.checkinDate == date })
 
 private fun latestNote(checkins: List<Checkin>): String =
     checkins

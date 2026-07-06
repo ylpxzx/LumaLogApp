@@ -122,9 +122,13 @@ fun LumaLogRoot() {
                     onBack = ::navigateBack,
                     onOpenMakeup = { screen = Screen.Makeup(current.itemId) },
                     onSaveShareImage = { entry, template -> saveHabitImage(context, entry, strings, darkTheme, template) },
-                    onCheckin = { note ->
-                        updateData(store.checkIn(data, current.itemId, note))
+                    onCheckin = {
+                        updateData(store.checkIn(data, current.itemId))
                         message = strings.t("checked")
+                    },
+                    onUpdateNote = { date, note ->
+                        updateData(store.updateCheckinNote(data, current.itemId, date, note))
+                        message = strings.t("checkinNoteSaved")
                     },
                 )
 
