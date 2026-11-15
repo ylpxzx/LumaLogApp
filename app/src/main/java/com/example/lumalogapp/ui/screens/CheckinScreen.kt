@@ -60,7 +60,7 @@ import com.example.lumalogapp.data.buildDashboardItems
 import com.example.lumalogapp.data.canCheckIn
 import com.example.lumalogapp.data.itemBadges
 import com.example.lumalogapp.ui.components.AchievementBadge
-import com.example.lumalogapp.ui.components.ContributionHeatmap
+import com.example.lumalogapp.ui.components.HistoryHeatmap
 import com.example.lumalogapp.ui.components.FoldIndicator
 import com.example.lumalogapp.ui.components.lumaIconOptions
 import com.example.lumalogapp.ui.components.normalizeLumaIconKey
@@ -988,49 +988,28 @@ private fun CheckinHeatmapCard(
     onUpdateNote: (String, String) -> Unit,
 ) {
     val colorScheme = MaterialTheme.colorScheme
-    val today = remember { LocalDate.now().toString() }
-    val heatmapDays = remember(entry.heatmap) { entry.heatmap }
     val checkinsByDate = remember(checkins) { checkins.groupBy { it.checkinDate } }
-    val makeupDates = remember(checkinsByDate) {
-        checkinsByDate.filterValues { records -> records.any { it.source == "makeup" && it.count > 0 } }.keys
-    }
-    val clickableDates = remember(heatmapDays) { heatmapDays.map { it.date }.toSet() }
     var selectedDate by remember(entry.item.id) { mutableStateOf<String?>(null) }
     var editingDate by remember(entry.item.id) { mutableStateOf<String?>(null) }
-    val selectedDay = remember(heatmapDays, selectedDate) { heatmapDays.firstOrNull { it.date == selectedDate } }
-    val editingDay = remember(heatmapDays, editingDate) { heatmapDays.firstOrNull { it.date == editingDate } }
-    val highlightedDates = selectedDate?.let { setOf(today, it) } ?: setOf(today)
+    fun dayForDate(date: String?): HeatmapDay? = date?.let {
+        val count = checkinsByDate[it].orEmpty().sumOf { record -> record.count }
+        HeatmapDay(it, count, count >= entry.item.dailyTargetCount, 0)
+    }
+    val selectedDay = dayForDate(selectedDate)
+    val editingDay = dayForDate(editingDate)
+    val highlightedDates = selectedDate?.let { setOf(it) } ?: emptySet()
     val accent = themeColor(entry.item.colorTheme)
 
     CheckinCard(contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = strings.t("checkinHeatmap"),
-                color = colorScheme.onSurface,
-                fontSize = 15.sp,
-                lineHeight = 19.sp,
-                fontWeight = FontWeight.Medium,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
-            )
-            HeatmapIntensityLegend(colorTheme = entry.item.colorTheme, strings = strings)
-        }
-        Spacer(Modifier.height(7.dp))
-        ContributionHeatmap(
-            days = heatmapDays,
-            colorTheme = entry.item.colorTheme,
+        HistoryHeatmap(
+            item = entry.item,
+            checkins = checkins,
             strings = strings,
             selectedDates = highlightedDates,
-            makeupDates = makeupDates,
-            clickableDates = clickableDates,
-            onDayClick = { selectedDate = it.date },
-            showContainer = false,
-            modifier = Modifier.fillMaxWidth(),
+            onDayClick = { day ->
+                selectedDate = if (selectedDate == day.date) null else day.date
+            },
+            legend = { HeatmapIntensityLegend(colorTheme = entry.item.colorTheme, strings = strings) },
         )
         selectedDay?.let { day ->
             Spacer(Modifier.height(7.dp))
